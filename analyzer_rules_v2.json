@@ -1,0 +1,887 @@
+{
+  "_meta": {
+    "source": "BYKI Mobile V2 — lib/engine/rules/ (all 7 system analyzers)",
+    "description": "Complete rule set from V2's 7-system health scoring engine. Each rule contributes a weighted penalty to its system's health score. Health score = 100 − Σ(matched rule weight × 100). Rules are additive within systems.",
+    "version": "V2.0",
+    "language": "Dart 3.12+ (transcribed to JSON for V5 use)",
+    "systems": ["charging", "combustion", "fuel", "cooling", "emission", "oil", "transmission"],
+    "rule_structure": {
+      "id": "Unique rule identifier",
+      "name": "Descriptive name",
+      "weight": "Penalty weight 0.0–1.0 (1.0 = 100% health impact)",
+      "description": "Technical explanation of what this rule detects",
+      "triggerConditions": "Logical description of trigger",
+      "thresholds": "Numeric values used in the rule",
+      "possibleCauses": "Array of likely root causes",
+      "physicsNote": "Underlying engineering rationale"
+    },
+    "special_notes": {
+      "tropicalClimateOffset": "Cooling system rules have +5°C on all temperature thresholds for Malaysian tropical climate",
+      "oilRules": "Oil system has NO direct oil quality PID — all rules are behavioral inference from other PIDs",
+      "transmissionRules": "Transmission rules use TCM-specific DIDs (Mode 22/23) not standard OBD Mode 01 — requires Rust agent"
+    }
+  },
+  "systems": {
+    "charging": {
+      "systemEnum": "VehicleSystem.charging",
+      "description": "Monitors alternator, battery, and charging circuit health",
+      "pidCoverage": ["ECU Voltage (0x0142)", "Engine RPM (0x010C)", "Engine Load (0x0104)"],
+      "healthScoring": "100 minus sum of triggered rule weights × 100",
+      "rules": [
+        {
+          "id": "CHG_R1_LOW_RUNNING_VOLTAGE",
+          "name": "Low Running Voltage",
+          "weight": 0.4,
+          "description": "Battery voltage below normal range while engine is running — charging system not maintaining proper voltage",
+          "triggerConditions": "RPM > 800 AND Voltage < 12.9V",
+          "thresholds": {
+            "voltage_threshold": 12.9,
+            "rpm_threshold": 800
+          },
+          "possibleCauses": [
+            "Alternator undercharging",
+            "Loose/corroded battery terminals",
+            "Weak battery failing to hold charge",
+            "Serpentine belt slipping"
+          ],
+          "physicsNote": "A healthy charging system maintains 13.5–14.8V while running. Below 12.9V indicates the alternator is not providing sufficient current above battery open-circuit voltage."
+        },
+        {
+          "id": "CHG_R1_LOW_RESTING_VOLTAGE",
+          "name": "Low Resting Voltage",
+          "weight": 0.3,
+          "description": "Battery voltage below 12.3V at idle — indicates discharged or failing battery",
+          "triggerConditions": "RPM < 800 AND Voltage < 12.3V",
+          "thresholds": {
+            "voltage_threshold": 12.3,
+            "rpm_threshold": 800
+          },
+          "possibleCauses": [
+            "Battery sulfation",
+            "Battery discharged — parasitic drain",
+            "Battery cell failure"
+          ],
+          "physicsNote": "Resting open-circuit voltage: 12.6V = 100% charge, 12.4V = 75%, 12.2V = 50%, 12.0V = 25%. Below 12.3V at idle is concerning."
+        },
+        {
+          "id": "CHG_R2_LOW_CHARGING_VOLTAGE",
+          "name": "Low Charging Voltage",
+          "weight": 0.35,
+          "description": "Voltage at cruise RPM below 13.5V — alternator not meeting demand",
+          "triggerConditions": "RPM > 1500 AND Voltage < 13.5V",
+          "thresholds": {
+            "voltage_threshold": 13.5,
+            "rpm_threshold": 1500
+          },
+          "possibleCauses": [
+            "Alternator failing",
+            "Voltage regulator malfunction",
+            "Drive belt worn",
+            "High resistance in charging circuit"
+          ],
+          "physicsNote": "At cruise RPM, alternator output should comfortably exceed battery terminal voltage, providing 13.5–14.8V. Consistently below 13.5V at 1500+ RPM indicates alternator capacity issue."
+        },
+        {
+          "id": "CHG_R3_OVERCHARGING",
+          "name": "Overcharging",
+          "weight": 0.45,
+          "description": "System voltage exceeding 14.8V — voltage regulator failure risk of battery damage",
+          "triggerConditions": "Voltage > 14.8V AND RPM > 1000",
+          "thresholds": {
+            "voltage_threshold_high": 14.8,
+            "rpm_threshold": 1000
+          },
+          "possibleCauses": [
+            "Voltage regulator stuck at full field",
+            "ECU charging control fault",
+            "Faulty alternator internal regulator"
+          ],
+          "physicsNote": "Above 14.8V risks electrolyte boil-off in flooded batteries, accelerated grid corrosion. AGM batteries tolerant to ~14.9V. Above 15V risks electrical component damage."
+        },
+        {
+          "id": "CHG_R4_FLAT_VOLTAGE_VS_RPM",
+          "name": "Flat Voltage vs RPM",
+          "weight": 0.3,
+          "description": "Voltage not increasing from idle to cruise — indicates flat alternator curve (possibly diode failure)",
+          "triggerConditions": "Voltage at RPM 2000 approximately equals voltage at RPM 800 (variance < 0.3V)",
+          "thresholds": {
+            "voltage_variance_threshold": 0.3,
+            "rpm_low": 800,
+            "rpm_high": 2000
+          },
+          "possibleCauses": [
+            "Open rectifier diode(s)",
+            "Alternator stator winding damage",
+            "Brush wear limiting output"
+          ],
+          "physicsNote": "A healthy alternator produces incrementally higher voltage as rotor speed increases (field current amplification). Flat response indicates rotor, stator, or rectifier issue."
+        },
+        {
+          "id": "CHG_R5_VOLTAGE_FLUCTUATION",
+          "name": "Voltage Fluctuation",
+          "weight": 0.25,
+          "description": "Voltage oscillating by more than 0.5V repeatedly — indicates intermittent contact or failing regulator",
+          "triggerConditions": "Voltage oscillates > 0.5V within short time window at stable RPM",
+          "thresholds": {
+            "oscillation_amplitude": 0.5
+          },
+          "possibleCauses": [
+            "Loose battery terminal connection",
+            "Failing voltage regulator",
+            "Worn alternator brushes",
+            "Corroded ground strap"
+          ],
+          "physicsNote": "Voltage ripple is normal at <0.2V (AC component from rectified 3-phase). Visible fluctuations >0.5V indicate intermittent connection or regulator hunting."
+        },
+        {
+          "id": "CHG_R6_VOLTAGE_DROP_UNDER_LOAD",
+          "name": "Voltage Drop Under Load",
+          "weight": 0.35,
+          "description": "Voltage drops below 12.5V when electrical loads activated — alternator cannot sustain demand",
+          "triggerConditions": "Voltage < 12.5V during high electrical load events (measured indirectly via load PID correlation)",
+          "thresholds": {
+            "voltage_threshold": 12.5
+          },
+          "possibleCauses": [
+            "Alternator at capacity limit",
+            "High resistance in power distribution",
+            "Battery unable to assist during peaks"
+          ],
+          "physicsNote": "Alternator current output is RPM-dependent. At low RPM with high electrical demand (AC, headlights, heated seats), battery must supplement alternator. Voltage drop indicates insufficient capacity."
+        }
+      ]
+    },
+    "combustion": {
+      "systemEnum": "VehicleSystem.combustion",
+      "description": "Monitors ignition quality, fuel combustion completion, O2 sensor activity, and misfire events",
+      "pidCoverage": ["LTFT B1 (0x0107)", "STFT B1 (0x0106)", "O2 B1S1 (0x0114)", "RPM (0x010C)", "Misfire C1 (0x0200)"],
+      "rules": [
+        {
+          "id": "COMB_R1_LTFT_DEVIATION",
+          "name": "LTFT Deviation",
+          "weight": 0.3,
+          "description": "Long-term fuel trim persistently positive or negative beyond ±10% — indicates chronic mixture offset",
+          "triggerConditions": "LTFT > 10% OR LTFT < -10%",
+          "thresholds": {
+            "ltft_high": 10.0,
+            "ltft_low": -10.0
+          },
+          "possibleCauses": [
+            "Lean: Vacuum leak, low fuel pressure, clogged injector, MAF under-reading",
+            "Rich: Leaking injector, EVAP purge fault, MAP sensor offset"
+          ],
+          "physicsNote": "LTFT is a learned offset stored in ECU memory. It compensates for systematic fueling errors by shifting base fuel map. Persistent deviation indicates a base calibration error the ECU is compensating for."
+        },
+        {
+          "id": "COMB_R2_STFT_INSTABILITY",
+          "name": "STFT Instability",
+          "weight": 0.2,
+          "description": "Short-term fuel trim exhibiting large variance — indicates unstable mixture supply",
+          "triggerConditions": "STFT variance > 8% span in recent history",
+          "thresholds": {
+            "variance_threshold": 8.0
+          },
+          "possibleCauses": [
+            "Intermittent vacuum leak",
+            "O2 sensor slow response",
+            "Fuel pressure fluctuation",
+            "Dirty throttle body causing mixture oscillation"
+          ],
+          "physicsNote": "STFT is the real-time closed-loop correction. High variance indicates the ECU is making large, rapid corrections suggesting an unstable input (O2 signal or fuel supply)."
+        },
+        {
+          "id": "COMB_R3_STFT_SPIKE",
+          "name": "STFT Spike",
+          "weight": 0.25,
+          "description": "Short-term fuel trim spiking beyond ±15% momentarily — indicates acute fueling event",
+          "triggerConditions": "STFT peak > 15% OR STFT peak < -15%",
+          "thresholds": {
+            "spike_threshold": 15.0
+          },
+          "possibleCauses": [
+            "Sudden vacuum leak (cracked hose)",
+            "Fuel injector failure event",
+            "EVAP purge pulse surge"
+          ],
+          "physicsNote": "ECU trim authority is typically ±25%. Spikes to ±15% indicate the ECU is near its correction limit, briefly. Fuel delivery drastically deviated from commanded."
+        },
+        {
+          "id": "COMB_R4_MISFIRE_COUNT",
+          "name": "Active Misfire Detected",
+          "weight": 0.45,
+          "description": "OBD misfire counter above zero — unburned fuel being pushed into exhaust",
+          "triggerConditions": "Misfire count > 0 for monitored cylinder",
+          "thresholds": {
+            "misfire_count_threshold": 0
+          },
+          "possibleCauses": [
+            "Degraded spark plug or coil",
+            "Clogged or weak injector",
+            "Compression loss (valve, piston ring, head gasket)",
+            "Ignition timing extreme out of range"
+          ],
+          "physicsNote": "OBD misfire monitoring uses crank acceleration pattern. Each correctly fired cylinder produces measurable crankshaft acceleration pulse. Missing pulses = misfire. Each misfire pushes raw hydrocarbons into catalyst, risking thermal damage."
+        },
+        {
+          "id": "COMB_R5_IDLE_INSTABILITY",
+          "name": "Idle RPM Instability",
+          "weight": 0.2,
+          "description": "RPM at idle exhibiting oscillation — hunting idle indicates unstable combustion or idle control issue",
+          "triggerConditions": "RPM variance > 100 RPM at closed-throttle idle",
+          "thresholds": {
+            "rpm_variance": 100,
+            "throttle_closed": 5.0
+          },
+          "possibleCauses": [
+            "Idle air control valve dirty/failing",
+            "Throttle body carbon buildup",
+            "Vacuum leak bleeding into intake",
+            "EVAP purge active during idle"
+          ],
+          "physicsNote": "Idle stability is maintained by IAC (bypass air) and fuel trim cooperation. Hunting indicates a perturbation input (air leak or variable vacuum) that the idle control cannot dampen quickly enough."
+        },
+        {
+          "id": "COMB_R6_O2_STUCK_LEAN",
+          "name": "O2 Sensor Stuck Lean",
+          "weight": 0.3,
+          "description": "Upstream O2 sensor voltage persistently below 0.2V for > 10 seconds — sensor contaminated or stuck",
+          "triggerConditions": "O2 voltage < 0.2V sustained AND closed loop",
+          "thresholds": {
+            "o2_voltage_low": 0.2,
+            "sustained_duration_sec": 10
+          },
+          "possibleCauses": [
+            "O2 sensor contaminated with silicone or coolant",
+            "Exhaust leak diluting O2 sample",
+            "Very lean misfire condition",
+            "Sensor element failure"
+          ],
+          "physicsNote": "A narrowband O2 sensor should switch between ~0.1V (lean) and ~0.9V (rich) in closed loop. Stuck low indicates either real severe lean condition or sensor failure preventing ECU from seeing rich excursion."
+        },
+        {
+          "id": "COMB_R7_O2_STUCK_RICH",
+          "name": "O2 Sensor Stuck Rich",
+          "weight": 0.3,
+          "description": "Upstream O2 sensor voltage persistently above 0.8V — ECU commanded rich or sensor stuck",
+          "triggerConditions": "O2 voltage > 0.8V sustained AND closed loop",
+          "thresholds": {
+            "o2_voltage_high": 0.8,
+            "sustained_duration_sec": 10
+          },
+          "possibleCauses": [
+            "Leaking injector flooding cylinder",
+            "O2 sensor biased high",
+            "EVAP purge saturating mixture",
+            "Large MAP/MAF sensor error causing over-fueling"
+          ],
+          "physicsNote": "Sustained rich reading causes ECU to pull fuel trim negative. If trim hits -25% limit and mixture is still rich, indicates a fuel delivery override or sensor malfunction."
+        },
+        {
+          "id": "COMB_R8_O2_LOW_VARIANCE",
+          "name": "O2 Low Variance (Lazy Sensor)",
+          "weight": 0.25,
+          "description": "Upstream O2 not switching actively — voltage variance below threshold indicating lazy/degraded sensor",
+          "triggerConditions": "O2 voltage variance < 0.3V over 30-second window in closed loop",
+          "thresholds": {
+            "variance_threshold": 0.3,
+            "window_sec": 30
+          },
+          "possibleCauses": [
+            "Aged O2 sensor with slow element response",
+            "O2 heater circuit failure causing cold sensor",
+            "Sensor contamination reducing output amplitude",
+            "ECU in open loop mode"
+          ],
+          "physicsNote": "Healthy O2 sensors switch 3-8 times per second in closed loop at idle. Low variance indicates sensor is not cycling, meaning ECU cannot properly read lean/rich transitions needed for fuel control."
+        }
+      ]
+    },
+    "fuel": {
+      "systemEnum": "VehicleSystem.fuel",
+      "description": "Monitors fuel delivery system: injectors, fuel pump, pressure regulation, and mixture formation",
+      "pidCoverage": ["LTFT B1 (0x0107)", "STFT B1 (0x0106)", "O2 B1S1 (0x0114)", "Engine Load (0x0104)"],
+      "rules": [
+        {
+          "id": "FUEL_R1_PERSISTENT_LEAN",
+          "name": "Persistent Lean LTFT",
+          "weight": 0.35,
+          "description": "LTFT persistently positive beyond +10% — ECU learned that base fueling is lean",
+          "triggerConditions": "LTFT > 10% for extended duration",
+          "thresholds": { "ltft_threshold": 10.0 },
+          "possibleCauses": [
+            "Vacuum leak adding unmetered air",
+            "Low fuel pressure reducing injection quantity",
+            "Clogged fuel injectors",
+            "MAF sensor under-reading actual airflow"
+          ],
+          "physicsNote": "LTFT positive = ECU adding fuel on top of base map because mixture runs lean. Consistent lean LTFT indicates a systematic un-metered air or under-fuel condition."
+        },
+        {
+          "id": "FUEL_R2_PERSISTENT_RICH",
+          "name": "Persistent Rich LTFT",
+          "weight": 0.35,
+          "description": "LTFT persistently negative beyond -10% — ECU learned base fueling is rich",
+          "triggerConditions": "LTFT < -10% for extended duration",
+          "thresholds": { "ltft_threshold": -10.0 },
+          "possibleCauses": [
+            "Leaking fuel injectors adding excess fuel",
+            "High fuel pressure",
+            "Saturated EVAP canister purging excess HC",
+            "MAF sensor over-reading causing excess fueling"
+          ],
+          "physicsNote": "LTFT negative = ECU reducing fuel to compensate for systematic over-rich condition. Common after EVAP canister saturation or injector o-ring leaks."
+        },
+        {
+          "id": "FUEL_R3_STFT_SPIKES",
+          "name": "STFT Spikes",
+          "weight": 0.25,
+          "description": "STFT exhibiting sudden spikes beyond ±20% — acute fuel delivery event",
+          "triggerConditions": "STFT spike > ±20% momentarily",
+          "thresholds": { "spike_threshold": 20.0 },
+          "possibleCauses": [
+            "Intermittent injector failure",
+            "Fuel pump pressure oscillation",
+            "EVAP purge surge",
+            "Cracked vacuum hose intermittently opening"
+          ],
+          "physicsNote": "ECU trim limits are typically ±25-30%. Spikes near limit indicate the ECU is at maximum correction. If air/fuel ratio still wrong at trim limits, misfire or DTC is imminent."
+        },
+        {
+          "id": "FUEL_R4_LEAN_UNDER_LOAD",
+          "name": "Lean Under Load",
+          "weight": 0.4,
+          "description": "Positive fuel trim increasing specifically under high load — fuel system cannot meet demand",
+          "triggerConditions": "STFT > 10% AND Load > 70%",
+          "thresholds": { "stft_threshold": 10.0, "load_threshold": 70.0 },
+          "possibleCauses": [
+            "Weak fuel pump failing under demand",
+            "Restricted fuel filter",
+            "Pressure regulator failing under high flow",
+            "Injectors undersized / clogged"
+          ],
+          "physicsNote": "Fuel pump must maintain pressure under peak flow demands. Restriction causes pressure drop under high injection pulse widths needed for WOT."
+        },
+        {
+          "id": "FUEL_R5_LEAN_PERSISTENCE",
+          "name": "Lean Persistence",
+          "weight": 0.3,
+          "description": "LTFT trending lean over multiple drive cycles — progressive lean condition developing",
+          "triggerConditions": "LTFT trending positive across sessions above 8%",
+          "thresholds": { "ltft_trend_threshold": 8.0 },
+          "possibleCauses": [
+            "Gradual injector clogging",
+            "Developing vacuum leak",
+            "MAF sensor contamination worsening",
+            "Air filter increasing restriction"
+          ],
+          "physicsNote": "LTFT is session-persistent (stored in KAM). Progressive increase across sessions indicates a worsening fuel delivery or air metering problem."
+        },
+        {
+          "id": "FUEL_R6_RICH_PERSISTENCE",
+          "name": "Rich Persistence",
+          "weight": 0.3,
+          "description": "LTFT trending rich over multiple drive cycles — progressive over-fueling condition",
+          "triggerConditions": "LTFT trending negative across sessions below -8%",
+          "thresholds": { "ltft_trend_threshold": -8.0 },
+          "possibleCauses": [
+            "O2 sensor aging/shift",
+            "Gradual injector leak developing",
+            "EVAP system issue"
+          ],
+          "physicsNote": "Negative LTFT trending progressively indicates worsening over-fueling. Often caused by injector o-ring degradation or cracked fuel pressure regulator diaphragm."
+        },
+        {
+          "id": "FUEL_R7_O2_LEAN_CORRELATED",
+          "name": "O2 and Trim Correlation Lean",
+          "weight": 0.35,
+          "description": "High positive LTFT combined with O2 readings confirming lean mixture — multi-signal lean confirmation",
+          "triggerConditions": "LTFT > 10% AND O2 < 0.3V sustained",
+          "thresholds": { "ltft_threshold": 10.0, "o2_low": 0.3 },
+          "possibleCauses": [
+            "Significant vacuum leak",
+            "Low fuel pressure with MAF reading correctly"
+          ],
+          "physicsNote": "When both LTFT and O2 signal confirm lean, this eliminates sensor disagreement and confirms actual lean mixture in cylinder."
+        },
+        {
+          "id": "FUEL_R8_BANK2_LEAN",
+          "name": "Bank 2 Lean Deviation",
+          "weight": 0.3,
+          "description": "Bank 2 LTFT significantly leaner than Bank 1 — bank-specific fuel delivery issue",
+          "triggerConditions": "LTFT_B2 - LTFT_B1 > 7% (B2 leaner)",
+          "thresholds": { "bank_differential_threshold": 7.0 },
+          "possibleCauses": [
+            "Intake manifold gasket leak on B2 side",
+            "Exhaust manifold crack leaking air before O2 sensor",
+            "Clogged injector(s) on B2",
+            "VVT phaser issue on B2 bank"
+          ],
+          "physicsNote": "Bank differential above 5-7% is a strong indicator of a bank-specific air or fuel issue, rather than a global fuel delivery problem."
+        }
+      ]
+    },
+    "cooling": {
+      "systemEnum": "VehicleSystem.cooling",
+      "description": "Monitors thermostat, coolant circulation, radiator, and thermal management efficiency. All temp thresholds include +5°C offset for Malaysian tropical climate.",
+      "pidCoverage": ["ECT (0x0105)", "Run Time (0x011F)", "Vehicle Speed (0x010D)"],
+      "tropicalClimateOffset": 5,
+      "rules": [
+        {
+          "id": "COOL_R1_SLOW_WARMUP",
+          "name": "Slow Warm-Up",
+          "weight": 0.3,
+          "description": "Engine not reaching at least 75°C within 10 minutes of start — thermostat stuck open",
+          "triggerConditions": "Run time > 600s AND ECT < 75°C (tropical adjusted: < 80°C)",
+          "thresholds": { "run_time_sec": 600, "ect_threshold_normal": 75, "ect_threshold_tropical": 80 },
+          "possibleCauses": [
+            "Thermostat stuck fully open",
+            "Missing thermostat",
+            "Coolant temperature sensor reading cold"
+          ],
+          "physicsNote": "A thermostat should start opening at ~88°C and be fully open by ~102°C. Engine that doesn't reach 75°C after 10 minutes has severely impaired thermal management — will run over-rich and reduce fuel economy."
+        },
+        {
+          "id": "COOL_R2_LOW_WARMUP_RATE",
+          "name": "Low Warm-Up Rate",
+          "weight": 0.2,
+          "description": "Engine temp rising too slowly even before thermostat opens — indicates low coolant or water pump issue",
+          "triggerConditions": "ECT rise rate < 0.1°C/sec during initial warm-up",
+          "thresholds": { "rise_rate_threshold": 0.1 },
+          "possibleCauses": [
+            "Low coolant level",
+            "Air pocket in cooling system",
+            "Weak water pump",
+            "Head gasket small leak"
+          ],
+          "physicsNote": "Normal pre-thermostat warm-up rate is 0.2-0.5°C per second depending on ambient temp and idle load. Below 0.1°C/s indicates the coolant mass is absorbing heat very slowly — possibly large air pocket or low level."
+        },
+        {
+          "id": "COOL_R3_OVERHEATING",
+          "name": "Overheating",
+          "weight": 0.5,
+          "description": "Coolant temperature above 110°C — engine in danger zone",
+          "triggerConditions": "ECT > 110°C (tropical adjusted: > 115°C)",
+          "thresholds": { "ect_threshold_normal": 110, "ect_threshold_tropical": 115 },
+          "possibleCauses": [
+            "Blocked radiator",
+            "Cooling fan failure",
+            "Head gasket failure",
+            "Water pump failure",
+            "Cracked cylinder head"
+          ],
+          "physicsNote": "Above 105°C risks coolant boiling (if cap failed), aluminum alloy annealing, head gasket distortion. At 115°C, ECU should trigger cooling measures or shutdown protection."
+        },
+        {
+          "id": "COOL_R4_ELEVATED_TEMP",
+          "name": "Elevated Temperature",
+          "weight": 0.25,
+          "description": "Temperature in warning zone 100-110°C — not yet critical but heating beyond design point",
+          "triggerConditions": "ECT between 100-110°C (tropical: 105-115°C)",
+          "thresholds": { "ect_low_normal": 100, "ect_high_normal": 110, "ect_low_tropical": 105, "ect_high_tropical": 115 },
+          "possibleCauses": [
+            "Partially blocked radiator",
+            "Cooling fan viscous coupling slipping",
+            "Low coolant mixture (high water ratio)",
+            "Towing / heavy load on hot day"
+          ],
+          "physicsNote": "The elevated range indicates cooling system is marginal. Under normal conditions it recovers, but sustained operation risks progressive degradation."
+        },
+        {
+          "id": "COOL_R5_TEMP_FLUCTUATION",
+          "name": "Temperature Fluctuation",
+          "weight": 0.2,
+          "description": "Coolant temperature oscillating >10°C repeatedly at steady state — thermostat or circulation issue",
+          "triggerConditions": "ECT variance > 10°C at steady cruise",
+          "thresholds": { "temp_variance": 10.0 },
+          "possibleCauses": [
+            "Thermostat cycling erratically",
+            "Coolant level low causing intermittent circulation",
+            "Water pump impeller slipping on shaft",
+            "Air pocket oscillating in system"
+          ],
+          "physicsNote": "Normal thermostat operation causes ±3-5°C oscillation. Fluctuations above 10°C indicate the thermostat is opening/closing too aggressively or coolant flow is intermittent."
+        },
+        {
+          "id": "COOL_R6_SUBOPTIMAL_TEMP",
+          "name": "Suboptimal Operating Temperature",
+          "weight": 0.15,
+          "description": "Engine running below optimal 82-95°C window even when warm — efficiency impact",
+          "triggerConditions": "Run time > 300s AND ECT < 82°C (tropical: < 87°C)",
+          "thresholds": { "run_time_sec": 300, "ect_low_normal": 82, "ect_low_tropical": 87 },
+          "possibleCauses": [
+            "Thermostat opening too early",
+            "Cold ambient temperature with heavy air flow",
+            "Missing or undersized thermostat"
+          ],
+          "physicsNote": "Optimal combustion efficiency occurs at 90-95°C where fuel atomization, oil viscosity, and catalytic converter efficiency are all optimal. Below 82°C engine runs enriched, increasing fuel consumption and wear."
+        },
+        {
+          "id": "COOL_R8_CRUISE_TEMP_DROP",
+          "name": "Cruise Temperature Drop",
+          "weight": 0.2,
+          "description": "Temperature dropping significantly when speed increases — thermostat stuck open allowing excessive coolant flow",
+          "triggerConditions": "ECT drops > 15°C when speed increases from idle to cruise",
+          "thresholds": { "temp_drop_threshold": 15.0 },
+          "possibleCauses": [
+            "Thermostat stuck open",
+            "Cooling fan running continuously at high speed"
+          ],
+          "physicsNote": "With thermostat stuck open, increased coolant flow at higher pump speed (RPM/speed) allows radiator to over-cool the coolant. Temperature should be stable across speed ranges with a functioning thermostat."
+        }
+      ]
+    },
+    "emission": {
+      "systemEnum": "VehicleSystem.emission",
+      "description": "Monitors catalytic converter efficiency, O2 sensor pair activity, and EGR function",
+      "pidCoverage": ["O2 B1S1 (0x0114)", "O2 B1S2 (0x0115)", "Cat Temp B1S1 (0x013C)", "EGR Command (0x012C)"],
+      "rules": [
+        {
+          "id": "EMIS_R1_DOWNSTREAM_MIRRORS",
+          "name": "Post-Cat O2 Mirroring Pre-Cat",
+          "weight": 0.4,
+          "description": "Downstream O2 switching at similar frequency to upstream — catalyst not storing oxygen",
+          "triggerConditions": "Downstream O2 switching rate > 70% of upstream rate",
+          "thresholds": { "switching_rate_ratio": 0.70 },
+          "possibleCauses": [
+            "Catalyst efficiency below 70%",
+            "Catalyst substrate destroyed/melted",
+            "Catalyst poisoned by oil/coolant"
+          ],
+          "physicsNote": "A healthy catalyst uses its cerium oxide oxygen storage to buffer lean/rich spikes. Post-cat O2 should see this buffered, stable exhaust. If it mirrors upstream, storage capacity is exhausted — catalyst is depleted."
+        },
+        {
+          "id": "EMIS_R2_O2_STORAGE_REDUCED",
+          "name": "Reduced O2 Storage Capacity",
+          "weight": 0.35,
+          "description": "Post-cat O2 responding too quickly to upstream changes — catalyst storage depleted",
+          "triggerConditions": "Time lag between upstream and downstream O2 response < 2 seconds",
+          "thresholds": { "lag_threshold_sec": 2.0 },
+          "possibleCauses": [
+            "Thermal damage from misfires",
+            "Catalyst overheating events",
+            "High mileage normal degradation"
+          ],
+          "physicsNote": "Oxygen storage capacity (OSC) is the key catalyst performance metric. Healthy catalyst has 0.5-2g oxygen storage. Depleted catalyst shows < 0.1g — measured indirectly by response speed."
+        },
+        {
+          "id": "EMIS_R3_LOW_VOLTAGE_DIFF",
+          "name": "Low Upstream-Downstream Voltage Difference",
+          "weight": 0.25,
+          "description": "Average voltage difference between upstream and downstream O2 too small",
+          "triggerConditions": "Average |VUpstream - VDownstream| < 0.2V",
+          "thresholds": { "voltage_diff_threshold": 0.2 },
+          "possibleCauses": [
+            "Both O2 sensors reading similar values — catalyst transparent",
+            "Downstream sensor biased to upstream value"
+          ],
+          "physicsNote": "Upstream sensor swings ±0.5V around 0.5V. Downstream held stable by catalyst should read ~0.55-0.65V. Small or reversed difference indicates catalyst not performing its storage function."
+        },
+        {
+          "id": "EMIS_R4_DOWNSTREAM_UNSTABLE",
+          "name": "Post-Cat O2 Unstable",
+          "weight": 0.3,
+          "description": "Downstream O2 exhibiting large unexplained oscillation — catalyst degraded or exhaust leak",
+          "triggerConditions": "Downstream O2 variance > 0.2V at steady state",
+          "thresholds": { "variance_threshold": 0.2 },
+          "possibleCauses": [
+            "Catalyst bed broken up (channeling)",
+            "Exhaust leak between both sensors",
+            "Downstream O2 sensor failure"
+          ],
+          "physicsNote": "Downstream O2 should be stable (±0.05V) except during deliberate rich/lean transitions for OSC testing. Instability indicates variable exhaust composition reaching the sensor."
+        },
+        {
+          "id": "EMIS_R5_DOWNSTREAM_STUCK_HIGH",
+          "name": "Downstream O2 Stuck High",
+          "weight": 0.2,
+          "description": "Post-cat O2 permanently high (>0.7V) — running rich through catalyst or sensor fault",
+          "triggerConditions": "Downstream O2 > 0.7V for extended period",
+          "thresholds": { "o2_high": 0.7 },
+          "possibleCauses": [
+            "Engine running very rich through catalyst",
+            "Downstream O2 sensor stuck",
+            "Exhaust leak providing reference oxygen"
+          ],
+          "physicsNote": "Post-cat persistent high voltage indicates sustained rich exhaust gas. Healthy catalyst should consume excess hydrocarbons, normalizing exhaust gas lambda."
+        },
+        {
+          "id": "EMIS_R6_DOWNSTREAM_STUCK_LOW",
+          "name": "Downstream O2 Stuck Low",
+          "weight": 0.2,
+          "description": "Post-cat O2 permanently low (<0.3V) — sensor failure or exhaust leak before downstream sensor",
+          "triggerConditions": "Downstream O2 < 0.3V sustained",
+          "thresholds": { "o2_low": 0.3 },
+          "possibleCauses": [
+            "O2 sensor heater failure keeping element cold",
+            "Exhaust leak ahead of downstream sensor adding O2",
+            "Sensor element failure"
+          ],
+          "physicsNote": "Post-cat sensor stuck lean is most often a failed heater circuit, preventing sensor element from reaching operating temperature (350°C minimum for zirconia cells)."
+        },
+        {
+          "id": "EMIS_R7_LTFT_CATALYST_COMBINED",
+          "name": "High LTFT with Degraded Catalyst",
+          "weight": 0.35,
+          "description": "Both lean LTFT and catalyst degradation signals present — combined emissions efficiency concern",
+          "triggerConditions": "LTFT > 10% AND downstream O2 mirroring upstream",
+          "thresholds": { "ltft_threshold": 10.0 },
+          "possibleCauses": [
+            "System running lean (high HC, low CO) AND catalyst unable to oxidize remaining HC",
+            "Double failure scenario"
+          ],
+          "physicsNote": "Lean condition increases NOx emission even as HC decreases. Degraded converter no longer reduces NOx effectively. Combined — all three major pollutants (HC, CO, NOx) at risk."
+        },
+        {
+          "id": "EMIS_R8_LAMBDA_DEVIATION",
+          "name": "Lambda Upstream Deviation",
+          "weight": 0.25,
+          "description": "O2 upstream average not centering around stoichiometry (0.5V on NBO2 = Lambda 1.0)",
+          "triggerConditions": "O2 upstream 30s average outside 0.4-0.6V in closed loop",
+          "thresholds": { "o2_low": 0.4, "o2_high": 0.6 },
+          "possibleCauses": [
+            "Stuck out of closed loop",
+            "Fuel trim authority exhausted",
+            "Sensor biased high or low"
+          ],
+          "physicsNote": "In closed loop, ECU drives mixture toward stoichiometric Lambda=1.0 (AFR 14.7:1 gasoline). O2 should oscillate around 0.5V on a conventional NBO2. Bias indicates trim limits reached or sensor error."
+        }
+      ]
+    },
+    "oil": {
+      "systemEnum": "VehicleSystem.oil",
+      "description": "Behavioral oil degradation inference — NO direct oil quality PID. Rules infer oil stress from thermal, speed, RPM, and usage patterns. Used to predict oil change urgency.",
+      "pidCoverage": ["ECT (0x0105)", "Engine RPM (0x010C)", "Vehicle Speed (0x010D)", "Run Time (0x011F)", "Oil Temp (0x015C, optional)"],
+      "note": "All rules are behavioral inference. Oil health is estimated, not directly measured.",
+      "rules": [
+        {
+          "id": "OIL_R1_HEAT_STRESS",
+          "name": "Thermal Stress Accumulation",
+          "weight": 0.25,
+          "description": "Coolant temperature persistently high — oil experiencing thermal degradation above 110°C",
+          "triggerConditions": "ECT > 105°C OR Oil Temp > 120°C sustained",
+          "thresholds": { "ect_threshold": 105, "oil_temp_threshold": 120 },
+          "possibleCauses": [
+            "Cooling system dysfunction allowing oil to overheat",
+            "Towing/heavy load operation",
+            "Tropical ambient + cooling issue compounding"
+          ],
+          "physicsNote": "Oil degradation rate doubles for every 10°C above normal operating range (Arrhenius rule). Above 120°C, base oil oxidation accelerates exponentially, reducing interfacial film strength and increasing viscosity breakdown."
+        },
+        {
+          "id": "OIL_R2_HIGH_RPM_STRESS",
+          "name": "High RPM Operation Stress",
+          "weight": 0.2,
+          "description": "Sustained high RPM operation stressing oil film at bearing surfaces",
+          "triggerConditions": "RPM > 5000 sustained for > 60 seconds",
+          "thresholds": { "rpm_threshold": 5000, "duration_sec": 60 },
+          "possibleCauses": [
+            "Spirited driving above oil design load",
+            "Manual transmission downshifting overspeed"
+          ],
+          "physicsNote": "At high RPM, hydrodynamic oil film at bearings must withstand increasing centrifugal and shear forces. High-shear viscosity stability (HTHS) is the key metric — oils meeting SAE J300 HTHS > 3.5 cP are preferred."
+        },
+        {
+          "id": "OIL_R3_IDLE_STRESS",
+          "name": "Excessive Idle Accumulation",
+          "weight": 0.15,
+          "description": "High proportion of running time spent at idle — reduces oil film pressure and allows fuel/water dilution",
+          "triggerConditions": "Idle fraction > 40% of run time (RPM < 900 AND throttle < 5%)",
+          "thresholds": { "idle_rpm_threshold": 900, "idle_throttle_threshold": 5, "idle_fraction": 0.40 },
+          "possibleCauses": [
+            "Extended warm-up idling",
+            "Stop-and-go urban driving",
+            "Transport/logistics duty cycles"
+          ],
+          "physicsNote": "At idle, oil pump barely maintains minimum pressure. Coolant and oil temperatures may not fully burn off condensation and fuel blow-by, causing dilution. Short-trip/idle-heavy cycles are particularly hard on oil."
+        },
+        {
+          "id": "OIL_R4_DISTANCE",
+          "name": "Mileage-Based Stress Indicator",
+          "weight": 0.3,
+          "description": "Accumulated distance since inferred oil change — approaching service interval",
+          "triggerConditions": "Inferred distance since last service > 7000 km",
+          "thresholds": { "distance_km": 7000 },
+          "note": "V5 should track session-cumulative distance if no external service record is available",
+          "possibleCauses": [
+            "Normal wear — oil change overdue"
+          ],
+          "physicsNote": "Conventional oil is typically rated for 5000-7500 km. Full synthetic 10000-15000 km. Base rule uses 7000 km conservative threshold for Malaysian tropical conditions."
+        },
+        {
+          "id": "OIL_R5_SHORT_TRIP",
+          "name": "Short Trip Pattern",
+          "weight": 0.2,
+          "description": "Regular short trips preventing oil from reaching full operating temperature — causes accelerated contamination",
+          "triggerConditions": "ECT never exceeds 80°C within a session AND run time > 10 min",
+          "thresholds": { "ect_threshold": 80, "run_time_min": 10 },
+          "possibleCauses": [
+            "Urban driving with stops before full warm-up",
+            "Very short commute distances"
+          ],
+          "physicsNote": "Below ~85°C engine operating temperature, water and fuel vapors condense into oil rather than evaporating out. Short trip duty cycle is identified by industry as the most damaging to oil condition."
+        },
+        {
+          "id": "OIL_R6_COMBINED_STRESS",
+          "name": "Combined High Stress",
+          "weight": 0.3,
+          "description": "Multiple stress factors active simultaneously — accelerated oil degradation probability",
+          "triggerConditions": "Three or more of: heat stress, high RPM, long idle, long distance all triggers active concurrently",
+          "possibleCauses": [
+            "Compounding operating conditions"
+          ],
+          "physicsNote": "Oil degradation is multiplicative, not additive under multiple stressors. High temp + high load + extended interval = oil life severely shortened beyond linear interpolation."
+        },
+        {
+          "id": "OIL_R7_TROPICAL_IDLE",
+          "name": "Malaysian Tropical Idle Penalty",
+          "weight": 0.15,
+          "description": "Idle penalty adjusted for Malaysian climate — AC compressor load increases idle thermal stress beyond standard thresholds",
+          "triggerConditions": "Idle fraction > 30% in high ambient temperature environment",
+          "thresholds": { "idle_fraction_tropical": 0.30 },
+          "note": "Tropical climate (Malaysia-specific): AC compressor adds ~3-5 kW parasitic load at all times, raising idle ECT by 5-8°C vs temperate baseline",
+          "physicsNote": "In Malaysia, air conditioning is mandatory in virtually all vehicles. AC creates additional idle load that temperate-climate oil change intervals don't account for. This rule applies an offset reducing the idle threshold trigger."
+        },
+        {
+          "id": "OIL_R8_DIRECT_TEMP_HIGH",
+          "name": "Direct Oil Temp High",
+          "weight": 0.4,
+          "description": "Direct oil temperature reading exceeding safe operating limit (when PID 0x015C available)",
+          "triggerConditions": "Oil Temp (0x015C) > 130°C",
+          "thresholds": { "oil_temp_threshold": 130 },
+          "pidRequired": "0x015C",
+          "possibleCauses": [
+            "Insufficient oil level",
+            "Oil cooler failure",
+            "Severe thermal event"
+          ],
+          "physicsNote": "Direct oil temperature measurement is available on modern vehicles via OBD-II PID 0x015C. Above 130°C is critical — API service limit for most engine oils. Immediate enrichment and thermal protection strategies recommended."
+        }
+      ]
+    },
+    "transmission": {
+      "systemEnum": "VehicleSystem.transmission",
+      "description": "Monitors automatic/CVT transmission health using TCM-specific parameters (Mode 22 DIDs via UDS/ISO-TP, requires Rust agent). Cannot be read via standard Chrome GATT OBD Mode 01.",
+      "pidCoverage": ["TCM Fluid Temp", "TCM Input Speed", "TCM Output Speed", "TCM Gear", "TCM DTC Info"],
+      "transport": "RUST_AGENT_REQUIRED",
+      "protocol": "ISO-TP / UDS Mode 22 / Mode 19",
+      "rules": [
+        {
+          "id": "TRANS_T1_FLUID_OVERHEAT",
+          "name": "Transmission Fluid Overheating",
+          "weight": 0.5,
+          "description": "Transmission fluid temperature at critical overheating level (≥120°C)",
+          "triggerConditions": "Trans fluid temp ≥ 120°C",
+          "thresholds": { "temp_critical": 120 },
+          "possibleCauses": [
+            "Transmission cooler blocked",
+            "Trans cooler line kinked",
+            "Low fluid level",
+            "Excessive slipping clutch heat",
+            "Towing beyond rated capacity"
+          ],
+          "physicsNote": "ATF oxidation doubles for every 10°C above 90°C. At 120°C, ATF life is reduced to ~50 hours. Clutch friction material degrades rapidly."
+        },
+        {
+          "id": "TRANS_T2_FLUID_HOT",
+          "name": "Transmission Fluid High Temperature",
+          "weight": 0.3,
+          "description": "Transmission fluid in warning zone (100-120°C)",
+          "triggerConditions": "Trans fluid temp between 100-120°C",
+          "thresholds": { "temp_warning_low": 100, "temp_warning_high": 120 },
+          "possibleCauses": [
+            "Heavy towing or sustained gradient climb",
+            "Trans cooler partially blocked",
+            "Fluid level slightly low"
+          ],
+          "physicsNote": "This range is recoverable but indicates cooling system marginal for current duty cycle. Long-term operation here degrades fluid faster than service intervals account for."
+        },
+        {
+          "id": "TRANS_T3_FLUID_COLD",
+          "name": "Transmission Fluid Cold",
+          "weight": 0.2,
+          "description": "Transmission fluid below 10°C — cold shift quality affected, risk of varnish if operated hard",
+          "triggerConditions": "Trans fluid temp < 10°C",
+          "thresholds": { "temp_low": 10 },
+          "possibleCauses": [
+            "Cold ambient temperature start",
+            "Malaysia unusual low-altitude cold night"
+          ],
+          "physicsNote": "ATF viscosity increases significantly below 10°C, causing engagement lag and pressure buildup issues. Designed for Kota Kinabalu highland use or air-conditioned parking structures."
+        },
+        {
+          "id": "TRANS_T4_LIMP_MODE",
+          "name": "Limp Mode Active",
+          "weight": 0.5,
+          "description": "TCM has commanded limp home mode — severe internal fault detected",
+          "triggerConditions": "TCM limp mode DTC flag SET in TCM DTC data",
+          "possibleCauses": [
+            "Shift solenoid failure",
+            "Pressure control solenoid fault",
+            "TCM internal fault",
+            "Mechanical failure causing ratio error"
+          ],
+          "physicsNote": "Limp mode restricts transmission to typically 2nd or 3rd gear at limited shift points. This is a protective strategy to allow vehicle movement while preventing further damage from uncontrolled shifting."
+        },
+        {
+          "id": "TRANS_T5_HIGH_TC_SLIP",
+          "name": "High Torque Converter Slip",
+          "weight": 0.35,
+          "description": "Torque converter slip exceeding 15% at cruise — TC clutch failing to lock",
+          "triggerConditions": "TC Slip = (Input speed - Output speed) / Input speed > 15%",
+          "thresholds": { "slip_threshold": 0.15 },
+          "possibleCauses": [
+            "Torque converter clutch solenoid failure",
+            "TC clutch material worn",
+            "Hydraulic pressure insufficient for TC lockup",
+            "Worn wave plate"
+          ],
+          "physicsNote": "TC slip above 5% at highway cruise wastes significant fuel (TCC is designed to lock at cruise for ~3-5% fuel economy improvement). Above 15% generates substantial heat."
+        },
+        {
+          "id": "TRANS_T6_TC_LOCK_FAIL",
+          "name": "Torque Converter Lockup Failure",
+          "weight": 0.45,
+          "description": "TC clutch unable to lock despite conditions exceeding lockup threshold (speed > 80 km/h, slip > 5%)",
+          "triggerConditions": "Speed > 80 km/h AND TC Slip > 5% sustained",
+          "thresholds": { "speed_threshold": 80, "slip_threshold": 0.05 },
+          "possibleCauses": [
+            "TC lockup solenoid stuck open",
+            "Hydraulic circuit leak",
+            "TC clutch plate worn beyond engagement"
+          ],
+          "physicsNote": "At highway speed the torque converter should be fully locked (0% slip) for efficiency. Sustained slip at speed generates heat proportional to torque × slip speed — leading to fluid degradation."
+        },
+        {
+          "id": "TRANS_T7_GEAR_RATIO_DRIFT",
+          "name": "Gear Ratio Deviation",
+          "weight": 0.3,
+          "description": "Actual gear ratio deviating > 10% from nominal — clutch pack or band slipping",
+          "triggerConditions": "|Actual ratio - Nominal ratio| / Nominal ratio > 10%",
+          "thresholds": { "deviation_threshold": 0.10 },
+          "possibleCauses": [
+            "Clutch pack wear in current gear",
+            "Band adjustment needed",
+            "Input/output speed sensor discrepancy",
+            "Mechanical damage to planetary gearset"
+          ],
+          "physicsNote": "Gear ratio is theoretically fixed by planetary gear tooth counts. Deviation indicates slippage in the clutch or band holding that gear — mechanical engagement quality issue."
+        },
+        {
+          "id": "TRANS_T8_CVT_BELT_SLIP",
+          "name": "CVT Belt/Chain Slip",
+          "weight": 0.5,
+          "description": "CVT variator ratio fluctuating > 5% at steady state — belt/chain slipping on pulley",
+          "triggerConditions": "CVT ratio variance > 5% fluctuation at steady throttle/speed",
+          "thresholds": { "ratio_variance": 0.05 },
+          "possibleCauses": [
+            "CVT belt worn or stretched",
+            "Pulley clamping force insufficient (hydraulic fault)",
+            "CVT steel push-belt delamination",
+            "Clutch pack gripping the variator inconsistently"
+          ],
+          "physicsNote": "CVT belts/chains transmit torque by clamping force on conical pulleys. Slip indicates insufficient clamping hydraulic pressure or belt wear. Progressive slip rapidly destroys belt and pulley running surfaces."
+        }
+      ]
+    }
+  }
+}

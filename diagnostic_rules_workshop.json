@@ -1,0 +1,884 @@
+{
+  "_meta": {
+    "source": "BYKI Workshop Diagnostic — src/data/diagnostic-rules.ts",
+    "description": "Complete diagnostic rule engine from Workshop Diagnostic. Rules are evaluated against live PID data to generate actionable diagnostic findings with severity levels and repair guidance.",
+    "version": "Workshop Diagnostic 1.0",
+    "language": "TypeScript (transcribed to JSON for V5 use)",
+    "total_rules": 43,
+    "categories": [
+      "FUEL_SYSTEM", "THERMAL", "O2_SENSOR", "IGNITION", "THROTTLE_IDLE",
+      "AIR_INTAKE", "EGR", "EVAP", "TURBO_SUPERCHARGER", "ELECTRICAL",
+      "OIL_SYSTEM", "TRANSMISSION", "EMISSION_CONTROL"
+    ],
+    "severity_levels": {
+      "CRITICAL": "Stop driving — immediate repair required",
+      "WARNING": "Repair required soon — monitor closely",
+      "INFO": "Monitor — may indicate developing issue"
+    },
+    "logic_types": {
+      "ALL": "All conditions must be met (logical AND)",
+      "ANY": "At least one condition must be met (logical OR)",
+      "COMPLEX": "Custom logic function — see technicalNotes"
+    },
+    "condition_operators": [">", "<", ">=", "<=", "==", "!=", "between", "outside", "rate_of_change"],
+    "repair_priority": {
+      "1": "Critical — stop driving immediately",
+      "2": "High — repair within days",
+      "3": "Medium — repair within weeks",
+      "4": "Low — monitor, repair at next service",
+      "5": "Advisory — informational"
+    }
+  },
+  "rules": [
+    {
+      "id": "lean-condition-bank1",
+      "name": "Lean Condition Bank 1",
+      "description": "Bank 1 running lean — ECU compensating with high positive fuel trims.",
+      "category": "FUEL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0106", "operator": ">", "value": 10, "description": "STFT > 10%" },
+        { "pid": "0x0107", "operator": ">", "value": 8, "description": "LTFT > 8%" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0107", "0x0104"],
+      "confidence": 85,
+      "recommendation": "Positive fuel trims indicate lean condition. Check for vacuum leaks (use intake cleaner or smoke machine), MAF sensor contamination, low fuel pressure, or clogged fuel injectors.",
+      "possibleDTCs": ["P0171", "P0174"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-3 hours",
+      "commonParts": ["Vacuum hoses", "MAF sensor", "Fuel filter", "Fuel injectors"],
+      "technicalNotes": "Combined STFT+LTFT > 20% makes vacuum leak more likely. Lean condition at idle only suggests vacuum leak. Lean at all RPM suggests MAF or fuel delivery issue."
+    },
+    {
+      "id": "severe-lean-condition",
+      "name": "Severe Lean Condition",
+      "description": "Both banks running severely lean — multiple system involvement likely.",
+      "category": "FUEL_SYSTEM",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0107", "operator": ">", "value": 20, "description": "LTFT B1 > 20%" },
+        { "pid": "0x0109", "operator": ">", "value": 20, "description": "LTFT B2 > 20%" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0107", "0x0108", "0x0109"],
+      "confidence": 95,
+      "recommendation": "Both banks at trim limits — severe lean condition. Causes: Large vacuum leak, MAF failure, fuel pump failure, blocked fuel filter. Risk of engine damage from detonation. Address immediately.",
+      "possibleDTCs": ["P0171", "P0172", "P0174"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "2-5 hours",
+      "commonParts": ["MAF sensor", "Fuel pump", "Vacuum hoses", "Fuel filter"],
+      "technicalNotes": "At trim limits (>25%) engine may miss, stall, or suffer detonation damage. Check fuel pressure before smoke testing."
+    },
+    {
+      "id": "lean-at-idle-only",
+      "name": "Lean at Idle Only",
+      "description": "Lean condition present only at idle, normalizes at higher RPM — suggests vacuum leak.",
+      "category": "FUEL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0107", "operator": ">", "value": 8, "description": "LTFT elevated" },
+        { "pid": "0x0104", "operator": "<", "value": 20, "description": "Low load (idle)" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0107", "0x0104", "0x010C"],
+      "confidence": 80,
+      "recommendation": "Lean at idle with normal trims at cruise is highly characteristic of vacuum leak. Small leaks have greater effect at low manifold pressure (high vacuum) at idle. Use smoke machine or propane enrichment to locate leak.",
+      "possibleDTCs": ["P0171", "P0174"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 2 hours",
+      "commonParts": ["Vacuum hoses", "Intake manifold gasket", "PCV hose", "Brake booster hose"],
+      "technicalNotes": "Small vacuum leaks add proportionally more air at idle (when throttle is mostly closed and manifold vacuum is highest) than at WOT. Classic diagnostic: trim normalizes above 2000 RPM = vacuum leak."
+    },
+    {
+      "id": "rich-condition-bank1",
+      "name": "Rich Condition Bank 1",
+      "description": "Bank 1 running rich — ECU compensating with negative fuel trims.",
+      "category": "FUEL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0106", "operator": "<", "value": -10, "description": "STFT < -10%" },
+        { "pid": "0x0107", "operator": "<", "value": -8, "description": "LTFT < -8%" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0107"],
+      "confidence": 85,
+      "recommendation": "Negative fuel trims indicate rich condition. Check: Leaking fuel injectors, high fuel pressure, saturated EVAP canister, coolant temp sensor reading cold, MAF sensor over-reading.",
+      "possibleDTCs": ["P0172", "P0175"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-3 hours",
+      "commonParts": ["Fuel injectors", "Fuel pressure regulator", "Coolant temp sensor"],
+      "technicalNotes": "Rich condition causes catalyst damage and poor fuel economy. Long-term rich = oil dilution from fuel wash-down."
+    },
+    {
+      "id": "severe-rich-condition",
+      "name": "Severe Rich Condition",
+      "description": "Both banks at negative trim limits — significant over-fueling.",
+      "category": "FUEL_SYSTEM",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0107", "operator": "<", "value": -20, "description": "LTFT B1 < -20%" },
+        { "pid": "0x0109", "operator": "<", "value": -20, "description": "LTFT B2 < -20%" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0107", "0x0108", "0x0109"],
+      "confidence": 90,
+      "recommendation": "Severe rich condition. Possible causes: Failed MAF (sky-high reading), multiple leaking injectors, ruptured fuel pressure regulator diaphragm, very high fuel pressure. Risk of catalytic converter damage and oil dilution.",
+      "possibleDTCs": ["P0172", "P0175"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "2-4 hours",
+      "commonParts": ["MAF sensor", "Fuel pressure regulator", "Fuel injectors"],
+      "technicalNotes": "Disconnect MAF and see if symptoms improve. If yes, MAF over-reading is cause."
+    },
+    {
+      "id": "rich-cold-start",
+      "name": "Rich After Cold Start",
+      "description": "Excessive richness during warm-up — cold start enrichment not closing off.",
+      "category": "FUEL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0105", "operator": "<", "value": 60, "description": "Engine not fully warm" },
+        { "pid": "0x0106", "operator": "<", "value": -15, "description": "Rich during warmup" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0106", "0x0105"],
+      "confidence": 75,
+      "recommendation": "Excessive enrichment during warm-up. Check ECT sensor accuracy (may be reading too cold), cold-start injector (if equipped), or injector leak. Rich cold start causes excess HC emissions and catalyst contamination.",
+      "possibleDTCs": ["P0172", "P0128"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 1.5 hours",
+      "commonParts": ["Coolant temp sensor", "Cold start injector (if equipped)"],
+      "technicalNotes": "ECT sensor wrong = ECU thinks engine is always cold, keeps enriching. Check resistance vs temperature chart."
+    },
+    {
+      "id": "bank-imbalance-lean",
+      "name": "Bank Imbalance — Bank 2 Lean",
+      "description": "Significant difference between bank 1 and bank 2 fuel trims (Bank 2 leaner).",
+      "category": "FUEL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0109", "operator": ">", "value": 8, "description": "LTFT B2 lean" },
+        { "pid": "0x0107", "operator": "<", "value": 3, "description": "LTFT B1 normal" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0107", "0x0109"],
+      "confidence": 82,
+      "recommendation": "Bank-specific lean condition points to bank-side issue: Intake manifold gasket leak on Bank 2, exhaust manifold crack before Bank 2 O2 sensor, or clogged Bank 2 injectors.",
+      "possibleDTCs": ["P0174"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-3 hours",
+      "commonParts": ["Intake gasket B2", "Exhaust manifold B2"],
+      "technicalNotes": "V-engine bank issues are confirmed when trim difference exceeds 5-7%. Injector balance test on both banks can isolate injector issues."
+    },
+    {
+      "id": "engine-overheating",
+      "name": "Engine Overheating",
+      "description": "Coolant temperature in danger zone — risk of severe engine damage.",
+      "category": "THERMAL",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0105", "operator": ">", "value": 110, "description": "Coolant temp critically high" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0105", "0x010C"],
+      "confidence": 95,
+      "recommendation": "STOP IMMEDIATELY. Pull over, engine off. Do not open radiator cap when hot. Common causes: Loss of coolant (leak), cooling fan failure, head gasket, water pump failure, blocked radiator. Do not drive overheating vehicle.",
+      "possibleDTCs": ["P0217", "P0218"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "Varies significantly — could be head rebuild",
+      "commonParts": ["Thermostat", "Water pump", "Radiator", "Head gasket", "Radiator cap"],
+      "technicalNotes": "Single overheating event above 130°C can warp aluminum heads. Check for white exhaust smoke (coolant burning) and sweet smell."
+    },
+    {
+      "id": "overcooling",
+      "name": "Engine Running Too Cool",
+      "description": "Engine not reaching normal operating temperature — thermostat likely stuck open.",
+      "category": "THERMAL",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0105", "operator": "<", "value": 70, "description": "Coolant temp below normal after warm-up" },
+        { "pid": "0x011F", "operator": ">", "value": 600, "description": "Engine running 10+ minutes" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0105", "0x011F"],
+      "confidence": 90,
+      "recommendation": "Thermostat likely stuck open causing excessive cooling. Engine runs over-rich, poor fuel economy, increased wear. Replace thermostat — inexpensive fix with significant benefit.",
+      "possibleDTCs": ["P0128"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 1.5 hours",
+      "commonParts": ["Thermostat", "Thermostat housing gasket"],
+      "technicalNotes": "P0128 DTC (coolant temperature below thermostat regulating temp) is the classic code for stuck-open thermostat."
+    },
+    {
+      "id": "rapid-temp-rise",
+      "name": "Rapid Coolant Temperature Rise",
+      "description": "Coolant temperature rising unusually fast — potential coolant loss or circulation issue.",
+      "category": "THERMAL",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0105", "operator": "rate_of_change", "value": 2, "description": "Temp rising > 2°C/sec" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0105"],
+      "confidence": 85,
+      "recommendation": "Rapid temperature rise indicates coolant loss or circulation failure. Pull over safely. Common causes: Major coolant leak, water pump failure, head gasket blown. Check for white steam from exhaust.",
+      "possibleDTCs": ["P0217", "P0218"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "Emergency — tow vehicle",
+      "commonParts": ["Emergency — assess situation first"],
+      "technicalNotes": "Normal warm-up rate is 0.2-0.5°C/sec. Above 2°C/sec at operating temp is catastrophic-rate rise."
+    },
+    {
+      "id": "o2-sensor-lazy",
+      "name": "Lazy O2 Sensor",
+      "description": "Oxygen sensor response time too slow — ECU fuel control degraded.",
+      "category": "O2_SENSOR",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0114", "operator": "between", "value": [0.35, 0.65], "description": "O2 stuck near midpoint", "duration": 10 }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0114", "0x0106"],
+      "confidence": 80,
+      "recommendation": "O2 sensor response slow or stuck (lazy sensor). ECU cannot properly control fuel mixture. Replace O2 sensor. Lazy sensors are common after 100,000 km.",
+      "possibleDTCs": ["P0136", "P0137", "P0138"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["O2 sensor (upstream B1S1)"],
+      "technicalNotes": "Healthy O2 switches 3-8 times/sec in closed loop. Lazy sensor switches < 1/sec causing poor fuel economy and emissions."
+    },
+    {
+      "id": "o2-sensor-stuck-lean",
+      "name": "O2 Sensor Stuck Lean",
+      "description": "Upstream O2 sensor persistently reading lean — causing over-fueling correction.",
+      "category": "O2_SENSOR",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0114", "operator": "<", "value": 0.2, "description": "O2 stuck lean", "duration": 10 }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0114", "0x0107"],
+      "confidence": 85,
+      "recommendation": "O2 sensor reading lean continuously. Could be: Genuine severe lean condition, exhaust leak before sensor diluting reading, or failed sensor. Rule out exhaust leak before replacing sensor.",
+      "possibleDTCs": ["P0131", "P0171"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["O2 sensor", "Exhaust manifold gasket"],
+      "technicalNotes": "Exhaust leak ahead of O2 sensor is the classic reason for stuck-lean despite rich fuel trims. Fuel trim will be very positive trying to compensate for false lean reading."
+    },
+    {
+      "id": "o2-sensor-stuck-rich",
+      "name": "O2 Sensor Stuck Rich",
+      "description": "Upstream O2 sensor persistently reading rich.",
+      "category": "O2_SENSOR",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0114", "operator": ">", "value": 0.8, "description": "O2 stuck rich", "duration": 10 }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0114", "0x0107"],
+      "confidence": 80,
+      "recommendation": "O2 persistently high. Genuine rich condition with ECU trimming fuel negative, or biased sensor. Compare with fuel trims: large negative LTFT + stuck-rich O2 = fuel delivery issue. Normal LTFT + stuck-rich O2 = sensor bias.",
+      "possibleDTCs": ["P0132", "P0172"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["O2 sensor", "Fuel injectors"],
+      "technicalNotes": "Contaminated sensor (silicone, RTV) can read falsely rich. Replace sensor if other causes eliminated."
+    },
+    {
+      "id": "o2-heater-failure",
+      "name": "O2 Sensor Heater Failure",
+      "description": "O2 sensor not reaching operating temperature quickly — heater circuit failure.",
+      "category": "O2_SENSOR",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0114", "operator": "between", "value": [0.45, 0.55], "description": "O2 inactive after startup" },
+        { "pid": "0x0105", "operator": ">", "value": 70, "description": "Engine warm" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0114", "0x0105"],
+      "confidence": 80,
+      "recommendation": "O2 sensor heater likely failed. Sensor running cold causes open-loop operation and increased emissions. Check heater circuit fuse and ground. Replace sensor if wiring OK.",
+      "possibleDTCs": ["P0141", "P0135", "P0161"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["O2 sensor", "O2 heater relay"],
+      "technicalNotes": "Heated O2 reaches operating temp (~350°C) in 10-30 seconds. Without heater, may take 2+ minutes on cold days — causing extended open-loop operation."
+    },
+    {
+      "id": "catalyst-inefficient",
+      "name": "Catalyst Efficiency Below Threshold",
+      "description": "Catalytic converter not effectively cleaning exhaust — emissions test failure likely.",
+      "category": "EMISSION_CONTROL",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0115", "operator": ">", "value": 0.5, "description": "Post-cat O2 switching like upstream" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0114", "0x0115"],
+      "confidence": 85,
+      "recommendation": "Catalyst failing emissions. Causes: Normal aging past 100,000 km, contamination from oil/coolant burn, overheating from misfires, fuel additive damage. Check for P0420/P0430. Replace catalyst after fixing root cause.",
+      "possibleDTCs": ["P0420", "P0430"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-2 hours labour + parts",
+      "commonParts": ["Catalytic converter"],
+      "technicalNotes": "Always diagnose what killed the catalyst (oil burning, misfire, coolant) before replacement, or new cat will fail too."
+    },
+    {
+      "id": "catalyst-overheat",
+      "name": "Catalytic Converter Overheating",
+      "description": "Catalyst temperature dangerously high — risk of substrate meltdown.",
+      "category": "EMISSION_CONTROL",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x013C", "operator": ">", "value": 900, "description": "Cat temp critical" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x013C", "0x0200"],
+      "confidence": 95,
+      "recommendation": "CRITICAL — Catalyst overheating. Most common cause: Active misfire pushing raw fuel into catalyst (fuel burns inside cat). Stop engine, diagnose misfire immediately. Sustained over-temp melts substrate, can cause underbody fire.",
+      "possibleDTCs": ["P0420", "P0300", "P0301"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "Emergency",
+      "commonParts": ["Catalytic converter (if damaged)", "Ignition components"],
+      "technicalNotes": "Normal cat operating temp: 400-800°C. A single misfire event can push it to 1000°C+. Fix misfire before assessing cat."
+    },
+    {
+      "id": "maf-contaminated",
+      "name": "MAF Sensor Contamination",
+      "description": "MAF sensor reading lower than expected — element contamination suspected.",
+      "category": "AIR_INTAKE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0110", "operator": "<", "value": 5, "description": "Very low MAF at idle" },
+        { "pid": "0x0107", "operator": ">", "value": 10, "description": "Lean compensation active" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0110", "0x0107", "0x0104"],
+      "confidence": 80,
+      "recommendation": "MAF reading lower than expected with positive trims. Clean MAF with dedicated MAF cleaner spray. If trims improve after cleaning, MAF was contaminated. Replace if cleaning doesn't help.",
+      "possibleDTCs": ["P0100", "P0101", "P0102"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "15 min",
+      "commonParts": ["MAF cleaner spray", "MAF sensor (if failed)"],
+      "technicalNotes": "Even a thin oil film on the hot-wire element reduces MAF reading significantly. Never touch MAF element or use generic cleaners."
+    },
+    {
+      "id": "maf-over-reading",
+      "name": "MAF Sensor Over-Reading",
+      "description": "MAF sensor reading higher than expected — causes over-fueling.",
+      "category": "AIR_INTAKE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0110", "operator": ">", "value": 30, "description": "MAF very high at idle" },
+        { "pid": "0x0107", "operator": "<", "value": -10, "description": "Rich compensation active" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0110", "0x0107"],
+      "confidence": 75,
+      "recommendation": "MAF reads high causing over-fueling. Check for: Air filter housing not sealed, MAF installed backwards, air leak after MAF measuring extra air counted by sensor. Disconnect MAF to force speed-density mode as test.",
+      "possibleDTCs": ["P0100", "P0103"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min diagnosis",
+      "commonParts": ["MAF sensor", "Air filter housing seal"],
+      "technicalNotes": "With MAF disconnected, ECU uses MAP/speed-density. If condition improves, MAF is over-reading."
+    },
+    {
+      "id": "maf-correlation-failure",
+      "name": "MAF to Load Correlation Failure",
+      "description": "MAF reading not matching calculated engine load — sensor or air system issue.",
+      "category": "AIR_INTAKE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0110", "operator": ">", "value": 20, "description": "MAF elevated" },
+        { "pid": "0x0104", "operator": "<", "value": 15, "description": "But load is low" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0110", "0x0104"],
+      "confidence": 75,
+      "recommendation": "MAF and load signals disagree — ECU may be confused about actual airflow. Common causes: Air leak between MAF and throttle body (MAF reads more than engine receives), or load calculation issue.",
+      "possibleDTCs": ["P0101"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["Air intake hose", "MAF sensor clamps"],
+      "technicalNotes": "A crack in the air hose between MAF and throttle body is a classic cause. MAF reads total airflow, but some leaks out before reaching cylinders."
+    },
+    {
+      "id": "cylinder-1-misfire",
+      "name": "Cylinder 1 Misfire Detected",
+      "description": "Specific misfire detected on cylinder 1.",
+      "category": "IGNITION",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0201", "operator": ">", "value": 0, "description": "Cylinder 1 misfire active" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0201", "0x0300"],
+      "confidence": 95,
+      "recommendation": "Cylinder 1 specific misfire. Swap coil/plug with adjacent cylinder to isolate. If misfire moves: Coil or plug at fault. If misfire stays: Injector, compression, or wiring specific to cyl 1.",
+      "possibleDTCs": ["P0301"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 2 hours",
+      "commonParts": ["Spark plug", "Ignition coil", "Fuel injector"],
+      "technicalNotes": "Swap test: Move coil from cyl 1 to cyl 2. If code moves to P0302, coil is cause. If stays P0301, inject or compression."
+    },
+    {
+      "id": "random-misfire",
+      "name": "Random/Multiple Cylinder Misfires",
+      "description": "Multiple cylinders misfiring or misfire count not cylinder-specific.",
+      "category": "IGNITION",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0200", "operator": ">", "value": 0, "description": "General misfire count elevated" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0200", "0x0201", "0x0202", "0x0203", "0x0204"],
+      "confidence": 85,
+      "recommendation": "Random multi-cylinder misfires suggest systemic cause: Low fuel pressure (affects all cylinders), ignition module failure, vacuum leak, EGR stuck open, or low compression (failing rings/head gasket).",
+      "possibleDTCs": ["P0300"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-4 hours depending on cause",
+      "commonParts": ["Spark plugs (replace all)", "Ignition module", "Fuel filter"],
+      "technicalNotes": "P0300 (random misfire) without a cylinder-specific code usually indicates fuel or compression issue rather than ignition."
+    },
+    {
+      "id": "misfire-at-idle-only",
+      "name": "Misfire at Idle Only",
+      "description": "Misfires occurring only at idle, clearing at higher RPM.",
+      "category": "IGNITION",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0200", "operator": ">", "value": 0, "description": "Misfire active" },
+        { "pid": "0x0104", "operator": "<", "value": 15, "description": "At idle load" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0200", "0x0104", "0x010C"],
+      "confidence": 80,
+      "recommendation": "Idle-only misfire suggests: EGR stuck open (diluting mixture at idle), dirty IAC causing lean idle misfire, weak coil losing spark at low RPM when spark energy is lowest, or EVAP purge active at idle.",
+      "possibleDTCs": ["P0300", "P0301"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-2 hours",
+      "commonParts": ["EGR valve", "IAC valve", "Ignition coil"],
+      "technicalNotes": "Coils that work at higher RPM (faster dwell recovery) but miss at idle are often carbon-tracked or have weak coil towers."
+    },
+    {
+      "id": "misfire-under-load",
+      "name": "Misfire Under Load",
+      "description": "Misfires increasing with throttle/load — suggests fuel or compression issue.",
+      "category": "IGNITION",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0200", "operator": ">", "value": 0, "description": "Misfire active" },
+        { "pid": "0x0104", "operator": ">", "value": 60, "description": "Under significant load" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0200", "0x0104"],
+      "confidence": 88,
+      "recommendation": "Load-only misfires indicate: Fuel delivery not keeping up under demand (weak pump/clogged filter), ignition timing too retarded, or compression dropping under cylinder pressure. Check fuel pressure under load.",
+      "possibleDTCs": ["P0300", "P0420"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "2-4 hours",
+      "commonParts": ["Fuel pump", "Fuel filter", "Spark plugs"],
+      "technicalNotes": "Misfires under load are particularly damaging to catalytic converters — raw fuel dumps straight in and ignites catalytically."
+    },
+    {
+      "id": "high-idle",
+      "name": "High Idle RPM",
+      "description": "Engine idle speed above normal range.",
+      "category": "THROTTLE_IDLE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x010C", "operator": ">", "value": 1200, "description": "Idle RPM elevated" },
+        { "pid": "0x0111", "operator": "<", "value": 5, "description": "Throttle closed" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x010C", "0x0111"],
+      "confidence": 88,
+      "recommendation": "High idle usually caused by: IAC valve stuck open, vacuum leak (unregulated air bypassing throttle), throttle plate not closing fully (cable binding or carbon), or ECU commanded high idle (A/C, DEF warmup complete but timer not resetting).",
+      "possibleDTCs": ["P0507"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 2 hours",
+      "commonParts": ["IAC valve", "Throttle body cleaning kit"],
+      "technicalNotes": "First ensure throttle closes fully mechanically. Then check IAC, then smoke test for vacuum leaks. ECU-commanded high idle is normal for A/C or cold start."
+    },
+    {
+      "id": "low-idle",
+      "name": "Low Idle RPM",
+      "description": "Engine idle speed below normal range — risk of stalling.",
+      "category": "THROTTLE_IDLE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x010C", "operator": "<", "value": 600, "description": "Idle RPM dangerously low" },
+        { "pid": "0x0111", "operator": "<", "value": 5, "description": "Throttle closed" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x010C", "0x0111"],
+      "confidence": 88,
+      "recommendation": "Low idle risk of stall. Check: Carbon buildup on throttle plate (clean throttle body), IAC not supplying enough bypass air, fuel trim extremely lean causing low combustion pressure, or EGR stuck open diluting mixture.",
+      "possibleDTCs": ["P0506"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 1.5 hours",
+      "commonParts": ["Throttle body cleaning kit", "IAC valve"],
+      "technicalNotes": "After throttle body cleaning, may need to perform idle relearn procedure (let ECU relearn closed throttle position)."
+    },
+    {
+      "id": "hunting-idle",
+      "name": "Hunting/Unstable Idle",
+      "description": "RPM oscillating at idle — idle control unable to stabilize.",
+      "category": "THROTTLE_IDLE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x010C", "operator": "outside", "value": [650, 850], "description": "RPM not stable" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x010C", "0x0106"],
+      "confidence": 82,
+      "recommendation": "Hunting idle caused by: IAC controller oscillating, vacuum leak causing RPM to swing, EVAP purge dumping extra fuel creating rich/lean cycle, or TPS signal noise causing ECU confusion about throttle position.",
+      "possibleDTCs": ["P0506", "P0507"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 2 hours",
+      "commonParts": ["IAC valve", "TPS sensor", "Vacuum hoses"],
+      "technicalNotes": "Disconnect EVAP purge hose as a test. If idle stabilizes, EVAP purge is contributing to oscillation."
+    },
+    {
+      "id": "tps-erratic",
+      "name": "TPS Signal Erratic",
+      "description": "Throttle position sensor showing erratic readings — affects multiple systems.",
+      "category": "THROTTLE_IDLE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0111", "operator": "rate_of_change", "value": 30, "description": "TPS changing > 30%/sec without driver input" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0111", "0x0145"],
+      "confidence": 85,
+      "recommendation": "Erratic TPS signal affects ignition timing, fuel delivery, and transmission shift points. Check TPS wiring harness for chafing, inspect connector for corrosion, measure TPS resistance sweep. Replace TPS if carbon track issue.",
+      "possibleDTCs": ["P0122", "P0123", "P0120"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["TPS sensor", "Throttle body"],
+      "technicalNotes": "Wiggle TPS connector while monitoring signal. Dropouts during wiggle = connector/wiring issue. Carbon track worn = intermittent dead spots in sensor sweep."
+    },
+    {
+      "id": "tps-not-closing",
+      "name": "TPS Not Returning to Zero",
+      "description": "Throttle position sensor not reading zero at idle.",
+      "category": "THROTTLE_IDLE",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0111", "operator": ">", "value": 10, "description": "TPS elevated at idle" },
+        { "pid": "0x010C", "operator": "<", "value": 1000, "description": "At idle RPM" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0111"],
+      "confidence": 80,
+      "recommendation": "TPS reading above 0 at idle. Could be: Physical throttle plate not closing (cable binding, carbon build-up), or TPS biased high (needs recalibration or replacement). Verify throttle closes mechanically before blaming sensor.",
+      "possibleDTCs": ["P0123", "P0120"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "15 min - 1 hour",
+      "commonParts": ["TPS sensor", "Throttle cable adjustment"],
+      "technicalNotes": "On DBW systems, TPS calibration is done in ECU. On cable throttle, physical adjustment is needed."
+    },
+    {
+      "id": "egr-stuck-open",
+      "name": "EGR Valve Stuck Open",
+      "description": "EGR valve not closing, causing rough idle and stalling.",
+      "category": "EGR",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x012C", "operator": "==", "value": 0, "description": "EGR commanded closed" },
+        { "pid": "0x010B", "operator": ">", "value": 50, "description": "MAP higher than expected at idle (low vacuum)" },
+        { "pid": "0x010C", "operator": "<", "value": 800, "description": "At idle" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x012C", "0x010B", "0x010C"],
+      "confidence": 80,
+      "recommendation": "EGR stuck open causes rough idle, stalling, and poor fuel economy. Carbon buildup is common cause. Remove and clean EGR valve, clean passages in intake manifold. Replace EGR if cleaning doesnt help.",
+      "possibleDTCs": ["P0402", "P0401", "P1406"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "1-2 hours",
+      "commonParts": ["EGR valve", "EGR gasket", "Intake manifold cleaning"],
+      "technicalNotes": "Diesel EGR systems are particularly prone to carbon buildup. Use walnut shell blasting for intake cleaning."
+    },
+    {
+      "id": "egr-insufficient-flow",
+      "name": "EGR Flow Insufficient",
+      "description": "EGR not flowing when commanded, increasing NOx emissions.",
+      "category": "EGR",
+      "severity": "INFO",
+      "conditions": [
+        { "pid": "0x012C", "operator": ">", "value": 20, "description": "EGR commanded open" },
+        { "pid": "0x012D", "operator": ">", "value": 15, "description": "High EGR error" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x012C", "0x012D", "0x010B"],
+      "confidence": 85,
+      "recommendation": "EGR not flowing adequately. Check: EGR passages clogged with carbon, vacuum supply to EGR actuator, EGR solenoid function, exhaust backpressure supply. Common on high-mileage vehicles.",
+      "possibleDTCs": ["P0401", "P0400", "P1406"],
+      "repairPriority": 4,
+      "estimatedRepairTime": "1-3 hours",
+      "commonParts": ["EGR valve", "EGR solenoid", "EGR passages (cleaning)"],
+      "technicalNotes": "EGR codes often fail emissions testing. EGR function required for compliance."
+    },
+    {
+      "id": "evap-large-leak",
+      "name": "EVAP System Large Leak Detected",
+      "description": "Significant leak in evaporative emission control system.",
+      "category": "EVAP",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0132", "operator": ">", "value": 1000, "description": "EVAP pressure not holding vacuum" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0132", "0x012E"],
+      "confidence": 85,
+      "recommendation": "Large EVAP leak: Loose or missing gas cap (check first!), cracked EVAP hose, failed purge valve, damaged charcoal canister, or missing vent valve seal. Use smoke machine for diagnosis.",
+      "possibleDTCs": ["P0455", "P0456", "P0440"],
+      "repairPriority": 4,
+      "estimatedRepairTime": "1-2 hours diagnosis",
+      "commonParts": ["Gas cap", "EVAP hoses", "Purge valve", "Vent valve"],
+      "technicalNotes": "Always start by checking/replacing gas cap. It's free diagnosis and often fixes P0455."
+    },
+    {
+      "id": "evap-purge-stuck",
+      "name": "EVAP Purge Valve Stuck Open",
+      "description": "Purge valve not operating correctly, causing rich condition.",
+      "category": "EVAP",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x012E", "operator": ">", "value": 30, "description": "Purge commanded" },
+        { "pid": "0x0106", "operator": "<", "value": -8, "description": "Running rich" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x012E", "0x0106", "0x0107"],
+      "confidence": 75,
+      "recommendation": "Purge valve stuck open causes: Rich running, rough idle when tank is full, strong fuel smell. Check purge valve holds vacuum when off, clicks when activated. Replace if stuck open.",
+      "possibleDTCs": ["P0441", "P0443", "P0172"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "30 min - 1 hour",
+      "commonParts": ["Purge valve", "EVAP hoses"],
+      "technicalNotes": "Stuck-open purge valve dumps fuel vapor into engine constantly, causing rich condition especially at idle."
+    },
+    {
+      "id": "boost-leak",
+      "name": "Turbo Boost Leak Detected",
+      "description": "Boost pressure not reaching expected levels — pressure loss in charged intake.",
+      "category": "TURBO_SUPERCHARGER",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0170", "operator": "<", "value": 120, "description": "Boost below expected (kPa)" },
+        { "pid": "0x0111", "operator": ">", "value": 80, "description": "Throttle wide open" },
+        { "pid": "0x010C", "operator": ">", "value": 3500, "description": "RPM sufficient for boost" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0170", "0x0171", "0x0111", "0x0104"],
+      "confidence": 85,
+      "recommendation": "Not reaching boost target: Boost leak in intercooler piping (most common), wastegate stuck open, turbo bearing failure, or boost control solenoid issue. Pressure test intercooler system first.",
+      "possibleDTCs": ["P0299", "P0234", "P0245"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-3 hours diagnosis",
+      "commonParts": ["Intercooler hoses", "Boost pipe clamps", "Wastegate actuator", "Boost solenoid"],
+      "technicalNotes": "Boost leak can be found with soapy water while pressurizing intake system. Listen for hissing under load."
+    },
+    {
+      "id": "overboost",
+      "name": "Overboost Condition",
+      "description": "Boost pressure exceeding safe limits — engine damage risk.",
+      "category": "TURBO_SUPERCHARGER",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0170", "operator": ">", "value": 200, "description": "Boost critically high (kPa)" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0170", "0x0171", "0x0104"],
+      "confidence": 95,
+      "recommendation": "DANGER — Overboost can damage engine. Possible causes: Wastegate stuck closed, boost control solenoid failed open, ECU boost limit bypassed. Vehicle may enter limp mode. Do not drive until fixed.",
+      "possibleDTCs": ["P0234", "P0243", "P0246"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "1-2 hours diagnosis",
+      "commonParts": ["Wastegate actuator", "Boost control solenoid"],
+      "technicalNotes": "Overboost causes detonation, bent rods, blown head gaskets. Critical failure mode requiring immediate attention."
+    },
+    {
+      "id": "turbo-lag-excessive",
+      "name": "Excessive Turbo Lag",
+      "description": "Turbocharger slow to spool up despite adequate RPM.",
+      "category": "TURBO_SUPERCHARGER",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0171", "operator": "<", "value": 40000, "description": "Turbo RPM low" },
+        { "pid": "0x010C", "operator": ">", "value": 3000, "description": "Engine RPM adequate" },
+        { "pid": "0x0104", "operator": ">", "value": 50, "description": "Under load" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0171", "0x0170", "0x010C", "0x0104"],
+      "confidence": 75,
+      "recommendation": "Turbo not spooling properly: Exhaust restriction (clogged cat/DPF), turbo bearing wear, VGT actuator stuck, exhaust leak before turbo, or boost leak reducing compressor loading.",
+      "possibleDTCs": ["P0299", "P2262", "P2263"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "2-4 hours diagnosis",
+      "commonParts": ["Turbocharger", "VGT actuator", "Exhaust components"],
+      "technicalNotes": "Check for shaft play in turbo (should be minimal). Blue smoke indicates oil seal failure."
+    },
+    {
+      "id": "alternator-undercharge",
+      "name": "Alternator Not Charging Adequately",
+      "description": "System voltage below normal while engine running.",
+      "category": "ELECTRICAL",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x0142", "operator": "<", "value": 13.2, "description": "System voltage low" },
+        { "pid": "0x010C", "operator": ">", "value": 1000, "description": "Engine running above idle" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0142", "0x010C"],
+      "confidence": 90,
+      "recommendation": "Low charging voltage: Worn alternator, slipping belt, high resistance in charging circuit, or failing battery. Check belt tension, battery connections, and alternator output at alternator terminal.",
+      "possibleDTCs": ["P0562", "P0622", "P0621"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "1-2 hours",
+      "commonParts": ["Alternator", "Serpentine belt", "Battery", "Battery cables"],
+      "technicalNotes": "Undercharging kills batteries and can leave you stranded. Check output at alternator terminal, not battery."
+    },
+    {
+      "id": "alternator-overcharge",
+      "name": "Alternator Overcharging",
+      "description": "System voltage above safe limits — voltage regulator failure.",
+      "category": "ELECTRICAL",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x0142", "operator": ">", "value": 15.0, "description": "System voltage too high" },
+        { "pid": "0x010C", "operator": ">", "value": 800, "description": "Engine running" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x0142"],
+      "confidence": 95,
+      "recommendation": "DANGER — Overcharging damages electrical components and can cause battery explosion. Likely voltage regulator failure internal to alternator. Replace alternator. Check for burnt electronics.",
+      "possibleDTCs": ["P0563"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "1-2 hours",
+      "commonParts": ["Alternator", "Voltage regulator"],
+      "technicalNotes": "Over 16V can blow light bulbs, damage ECUs, and boil battery. Stop driving immediately."
+    },
+    {
+      "id": "low-oil-pressure-idle",
+      "name": "Low Oil Pressure at Idle",
+      "description": "Oil pressure below safe threshold at idle — engine damage imminent.",
+      "category": "OIL_SYSTEM",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x015B", "operator": "<", "value": 80, "description": "Oil pressure very low (kPa)" },
+        { "pid": "0x010C", "operator": "<", "value": 900, "description": "At idle" },
+        { "pid": "0x015C", "operator": ">", "value": 80, "description": "Oil warm" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x015B", "0x010C", "0x015C"],
+      "confidence": 95,
+      "recommendation": "LOW OIL PRESSURE — ENGINE DAMAGE IMMINENT. Check oil level immediately. If level OK: Worn bearings, oil pump failure, clogged pickup screen, wrong viscosity. Stop driving until diagnosed.",
+      "possibleDTCs": ["P0520", "P0521", "P0522"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "Varies — could be major rebuild",
+      "commonParts": ["Oil pump", "Bearings", "Pickup tube", "Oil filter"],
+      "technicalNotes": "Low oil pressure warning should never be ignored. Even brief low pressure episodes cause bearing damage."
+    },
+    {
+      "id": "oil-pressure-no-rise",
+      "name": "Oil Pressure Not Rising with RPM",
+      "description": "Oil pressure staying low as RPM increases — pump or bearing failure.",
+      "category": "OIL_SYSTEM",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x015B", "operator": "<", "value": 200, "description": "Oil pressure not rising (kPa)" },
+        { "pid": "0x010C", "operator": ">", "value": 2500, "description": "RPM elevated" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x015B", "0x010C"],
+      "confidence": 85,
+      "recommendation": "Oil pressure should increase significantly with RPM. No increase indicates: Worn oil pump, stuck pressure relief valve, severely worn bearings, or oil bypass issue. Use mechanical gauge to verify before teardown.",
+      "possibleDTCs": ["P0520", "P0521"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "2-4 hours diagnosis",
+      "commonParts": ["Oil pump", "Pressure relief valve", "Main bearings"],
+      "technicalNotes": "Always verify with mechanical gauge. Electronic oil pressure sensors can fail, giving false readings."
+    },
+    {
+      "id": "trans-overheat",
+      "name": "Transmission Overheating",
+      "description": "Transmission fluid temperature exceeding safe limits.",
+      "category": "TRANSMISSION",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x01A4", "operator": ">", "value": 120, "description": "Trans temp critically high (°C)" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x01A4", "0x0104", "0x010D"],
+      "confidence": 95,
+      "recommendation": "STOP AND COOL DOWN. ATF breaks down rapidly above 120°C. Check: Fluid level, cooler blockage, torque converter lockup issues, slipping clutches. Towing or heavy load in hot weather is common cause.",
+      "possibleDTCs": ["P0218", "P0711", "P0712"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "Varies",
+      "commonParts": ["Trans fluid", "Trans cooler", "Torque converter", "Trans filter"],
+      "technicalNotes": "Every 10°C over 90°C roughly halves ATF life. Overheated fluid loses lubrication — damage is cumulative."
+    },
+    {
+      "id": "trans-slipping",
+      "name": "Transmission Slipping Detected",
+      "description": "RPM rising without corresponding vehicle speed increase — clutch slip.",
+      "category": "TRANSMISSION",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x010C", "operator": ">", "value": 3000, "description": "RPM elevated" },
+        { "pid": "0x010D", "operator": "<", "value": 50, "description": "Speed low for RPM" },
+        { "pid": "0x0104", "operator": ">", "value": 40, "description": "Under load" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x010C", "0x010D", "0x01A3", "0x01A4"],
+      "confidence": 80,
+      "recommendation": "Transmission slip detected. Check fluid level and condition first (burnt smell = damaged clutches). Low fluid, worn clutches, or failing torque converter. Service may help if caught early, rebuild if severe.",
+      "possibleDTCs": ["P0730", "P0731", "P0732", "P0733"],
+      "repairPriority": 2,
+      "estimatedRepairTime": "Varies significantly",
+      "commonParts": ["Trans fluid", "Trans filter", "Clutch packs", "Torque converter"],
+      "technicalNotes": "Slipping creates heat which causes more slipping — address promptly to avoid complete failure."
+    },
+    {
+      "id": "dpf-regen-needed",
+      "name": "DPF Regeneration Required",
+      "description": "Diesel Particulate Filter soot loading high — regeneration needed.",
+      "category": "EMISSION_CONTROL",
+      "severity": "WARNING",
+      "conditions": [
+        { "pid": "0x017D", "operator": ">", "value": 20, "description": "DPF differential pressure high (kPa)" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x017D", "0x017C", "0x0104"],
+      "confidence": 90,
+      "recommendation": "DPF needs regeneration. Drive on highway (sustained > 60 km/h for 15-20 minutes) to allow passive/active regen. Frequent short trips prevent natural regen. Forced regen may be needed if pattern doesn't allow.",
+      "possibleDTCs": ["P2002", "P2003", "P244A", "P244B"],
+      "repairPriority": 3,
+      "estimatedRepairTime": "20 min highway drive or 1 hour forced regen",
+      "commonParts": ["None if regen successful", "DPF if damaged"],
+      "technicalNotes": "Don't ignore regen warnings — eventually DPF will clog completely and require expensive replacement or professional cleaning."
+    },
+    {
+      "id": "dpf-regen-failed",
+      "name": "DPF Regeneration Failure",
+      "description": "DPF unable to regenerate successfully — critical soot accumulation.",
+      "category": "EMISSION_CONTROL",
+      "severity": "CRITICAL",
+      "conditions": [
+        { "pid": "0x017D", "operator": ">", "value": 30, "description": "DPF pressure critical (kPa)" },
+        { "pid": "0x017C", "operator": "<", "value": 500, "description": "Regen temperature not reached (°C)" }
+      ],
+      "logicType": "ALL",
+      "affectedPIDs": ["0x017D", "0x017C"],
+      "confidence": 90,
+      "recommendation": "DPF regen not completing. Causes: Regen interrupted by driving pattern, faulty injector (can't create post-injection heat), glow plug failure, temperature sensor issue. Forced regen with scan tool or DPF cleaning/replacement.",
+      "possibleDTCs": ["P244A", "P244B", "P2463"],
+      "repairPriority": 1,
+      "estimatedRepairTime": "2-4 hours diagnosis",
+      "commonParts": ["DPF", "Fuel injectors", "Glow plugs", "DPF sensors"],
+      "technicalNotes": "Multiple failed regens cause ash buildup that can't be burned off. Professional cleaning or replacement eventually needed."
+    }
+  ]
+}
