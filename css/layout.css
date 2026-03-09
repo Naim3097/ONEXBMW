@@ -1,23 +1,30 @@
 .container {
   max-width: var(--container-width);
   margin: 0 auto;
-  padding: 0 var(--spacing-md);
+  padding: 0 var(--grid-padding);
 }
 
-/* Header - Minimalist, high contrast */
+/* ── Header — BMW-height, clean, authoritative ── */
 .site-header {
   background: var(--color-black);
   color: var(--color-white);
-  padding: 12px 0;
-  border-bottom: 4px solid var(--color-primary);
+  position: relative;
+}
+.site-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-primary);   /* One X Red accent stripe */
 }
 .site-header .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  max-width: 1100px;
+  height: 68px;                       /* BMW mobile nav height */
+  max-width: var(--container-wide);
 }
 .site-header .brand-logo {
   display: flex;
@@ -25,48 +32,63 @@
   flex-shrink: 0;
 }
 .site-header .brand-logo img {
-  height: 28px;
+  height: 32px;
   width: auto;
   display: block;
 }
 nav {
   display: flex;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
 }
 nav a {
-  color: #ccc;
-  font-size: 0.95rem;
-  font-weight: 500;
+  color: var(--color-text-muted);
+  font-size: var(--body-2);
+  font-weight: var(--fw-clickable);   /* 500 — BMW clickable weight */
   text-decoration: none;
+  padding: 0.75rem 0.5rem;           /* 44px+ tap target */
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 nav a:hover {
   color: var(--color-white);
 }
 
-/* Footer */
+@media (min-width: 768px) {
+  .site-header .container {
+    height: 84px;                     /* BMW tablet/desktop height */
+  }
+  .site-header .brand-logo img {
+    height: 40px;
+  }
+}
+
+/* ── Footer — BMW dense, structured ── */
 footer {
   background: var(--color-black);
   color: var(--color-text-muted);
   padding: var(--spacing-xl) 0;
-  font-size: 0.9rem;
-  margin-top: calc(var(--spacing-xl) * 2);
-  border-top: 1px solid #222;
+  font-size: var(--body-2);
+  margin-top: var(--spacing-2xl);
+  border-top: 1px solid #333;
 }
 footer .container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--spacing-xl);
+  max-width: var(--container-wide);
 }
 footer h4 {
   color: var(--color-white);
   margin-bottom: var(--spacing-sm);
   margin-top: 0;
-  font-size: 1.1rem;
+  font-size: var(--body-1);
+  font-weight: var(--fw-clickable);   /* 500 — not 700 */
 }
 footer a {
-  color: #ccc;
+  color: var(--color-text-muted);
   text-decoration: none;
+  font-weight: var(--fw-default);
 }
 footer a:hover {
   color: var(--color-white);
@@ -76,13 +98,26 @@ footer ul {
   margin: 0;
   padding: 0;
 }
+footer li {
+  margin-bottom: 0.75rem;
+}
+footer p {
+  font-size: var(--body-2);
+  line-height: 1.5;
+}
 
-/* Breadcrumb */
+@media (min-width: 768px) {
+  footer .container {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+}
+
+/* ── Breadcrumb — BMW-clean ── */
 .breadcrumb {
-  font-size: 0.85rem;
-  padding: var(--spacing-md) 0;
+  font-size: var(--body-3);
+  padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--color-border);
-  font-weight: 500;
+  font-weight: var(--fw-clickable);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: var(--spacing-lg);
@@ -92,33 +127,111 @@ footer ul {
   text-decoration: none;
 }
 .breadcrumb a:hover {
-  color: var(--color-primary);
+  color: var(--color-bmw-blue);
 }
 .breadcrumb span {
   margin: 0 var(--spacing-xs);
   color: var(--color-border);
 }
 
-/* Sections */
+/* ── Article ── */
 article {
   padding: var(--spacing-md) 0;
 }
+
+/* ── Hero — BMW Stage pattern: dark, cinematic, spacious ── */
 .landing-hero {
   background: var(--color-black);
   color: var(--color-white);
-  padding: calc(var(--spacing-xl) * 1.5) 0;
-  text-align: center;
+  padding: var(--spacing-2xl) 0;
+  position: relative;
+  overflow: hidden;
+}
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(60deg, #000, transparent 65%);
+  z-index: 1;
+}
+.landing-hero .container {
+  position: relative;
+  z-index: 2;
+  max-width: var(--container-wide);
 }
 .landing-hero h1 {
   color: var(--color-white);
-  font-size: 3rem;
+  font-size: var(--h1-size);
+  font-weight: var(--fw-default);     /* 300 — BMW hero weight */
   margin-bottom: var(--spacing-md);
+  line-height: 1.15;
   border: none;
   padding: 0;
 }
-.landing-hero p.hero-sub {
-  color: #ccc;
-  font-size: 1.25rem;
+.landing-hero p.hero-sub,
+.landing-hero p {
+  color: var(--color-border-strong);
+  font-size: var(--body-1);
   max-width: 600px;
-  margin: 0 auto var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  font-weight: var(--fw-default);
+}
+
+/* CTA box inside hero — transparent, flex layout */
+.landing-hero .cta-box {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.landing-hero .cta-box a:not(.call) {
+  background-color: #25d366;      /* WhatsApp green */
+}
+.landing-hero .cta-box a:not(.call):hover {
+  background-color: #1da851;
+}
+.landing-hero .cta-box a.call {
+  background-color: var(--color-primary);  /* One X Red */
+}
+.landing-hero .cta-box a.call:hover {
+  background-color: #8a1a1a;
+}
+
+@media (min-width: 768px) {
+  .landing-hero {
+    padding: var(--spacing-2xl) 0 calc(var(--spacing-2xl) * 1.5);
+  }
+  .landing-hero h1 {
+    font-size: calc(var(--h1-size) * 1.15);
+  }
+  .landing-hero .cta-box {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .landing-hero h1 {
+    font-size: 3.75rem;               /* 60px — BMW ultrawide h1 */
+  }
+  .landing-hero p.hero-sub,
+  .landing-hero p {
+    font-size: 1.125rem;
+  }
+}
+
+/* Reading progress bar (blog posts) */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: var(--color-primary);
+  z-index: 9999;
+  transition: width 0.1s linear;
 }

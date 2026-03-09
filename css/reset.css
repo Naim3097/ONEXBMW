@@ -3,14 +3,24 @@
   margin: 0;
   padding: 0;
 }
+html {
+  overflow-x: hidden;
+}
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;       /* BMW verified */
 }
 img {
   max-width: 100%;
   height: auto;
   display: block;
+}
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);       /* BMW universal focus ring */
 }

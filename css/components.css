@@ -1,15 +1,20 @@
-/* DTC Boxes / Alerts */
+/* ══════════════════════════════════════════
+   BMW-Aligned Component System
+   Verified from bmw.co.uk production CSS
+   ══════════════════════════════════════════ */
+
+/* ── DTC Boxes / Alerts ── */
 .dtc-box {
   background: var(--color-bg-alt);
   border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-primary);
+  border-left: 3px solid var(--color-primary);
   padding: var(--spacing-md);
   margin: var(--spacing-md) 0;
   border-radius: var(--radius-sm);
 }
 .dtc-box code {
   font-family: monospace;
-  font-weight: 700;
+  font-weight: var(--fw-clickable);
   color: var(--color-primary);
   font-size: 1.1rem;
   background: var(--color-white);
@@ -19,8 +24,8 @@
 .dtc-box .severity {
   display: inline-block;
   padding: 2px 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: var(--body-3);
+  font-weight: var(--fw-clickable);
   text-transform: uppercase;
   margin-left: var(--spacing-xs);
   border-radius: var(--radius-sm);
@@ -29,101 +34,248 @@
 .severity-warning { background: #fef08a; color: #b45309; }
 .severity-info { background: #e0f2fe; color: #0369a1; }
 
-/* Tables */
+/* ── Tables — BMW: black header, clean borders ── */
+article .threshold-table,
+article table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .threshold-table {
   width: 100%;
   border-collapse: collapse;
   margin: var(--spacing-md) 0;
-  font-size: 0.95rem;
+  font-size: var(--body-2);
 }
 .threshold-table th {
-  background: var(--color-black);
+  background: var(--color-text);       /* #262626 — BMW uses dark grey, not pure black */
   color: var(--color-white);
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   text-align: left;
-  font-weight: 700;
+  font-weight: var(--fw-clickable);
 }
 .threshold-table td {
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-border);
 }
 .threshold-table tr:nth-child(even) {
   background: var(--color-bg-alt);
 }
 
-/* CTAs / Buttons */
+/* ── Buttons — BMW 5-variant system ── */
+
+/* Primary Button: BMW Blue */
+.btn-primary,
+.cta-box a:not(.call) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bmw-blue);
+  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.btn-primary:hover,
+.cta-box a:not(.call):hover {
+  background-color: var(--color-bmw-blue-hover);
+  color: var(--color-white);
+}
+.btn-primary:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* NBA Dark Button: dark branded */
+.btn-dark,
+.cta-box a.call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-text);  /* #262626 */
+  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.btn-dark:hover,
+.cta-box a.call:hover {
+  background-color: var(--color-text-light);
+  color: var(--color-white);
+}
+
+/* Outline Dark Button */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--color-text);
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast);
+}
+.btn-outline:hover {
+  box-shadow: inset 0 0 0 2px var(--color-text);
+  color: var(--color-text);
+}
+
+/* Link Button (text-only CTA) */
+.btn-link {
+  background: transparent;
+  color: var(--color-text);
+  padding: 0;
+  border: 0;
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.btn-link:hover {
+  color: var(--color-bmw-blue);
+}
+
+/* One X Accent Button (WhatsApp green, Call red) */
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #25d366;
+  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.btn-whatsapp:hover {
+  background-color: #1da851;
+  color: var(--color-white);
+}
+
+.btn-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.btn-call:hover {
+  background-color: #8a1a1a;
+  color: var(--color-white);
+}
+
+/* ── CTA Box — BMW clean surface ── */
 .cta-box {
   background: var(--color-bg-alt);
   border: 1px solid var(--color-border);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
   border-radius: var(--radius-sm);
   margin: var(--spacing-xl) 0;
   text-align: center;
 }
-.cta-box h3 { margin-top: 0; color: var(--color-black); border: none; padding: 0; }
-.cta-box p { color: var(--color-text-light); }
-.cta-box a {
-  display: inline-block;
-  background: var(--color-black);
-  color: var(--color-white);
-  padding: 14px 32px;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  margin: var(--spacing-xs);
-  text-decoration: none;
-  font-size: 1.05rem;
-  transition: all 0.2s ease;
+.cta-box h3 {
+  margin-top: 0;
+  color: var(--color-text);
+  font-weight: var(--fw-clickable);
 }
-.cta-box a:hover {
-  background: var(--color-primary);
-}
-.cta-box a.call {
-  background: var(--color-primary);
-  color: var(--color-white);
-}
-.cta-box a.call:hover {
-  background: var(--color-black);
+.cta-box p {
+  color: var(--color-text-light);
+  font-size: var(--body-1);
 }
 
-/* Grids */
+/* ── Cards — BMW shadow on hover, clean borders ── */
 .hub-grid, .service-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--spacing-md);
   margin: var(--spacing-md) 0;
 }
+@media (min-width: 768px) {
+  .hub-grid, .service-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .hub-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .hub-card, .service-card {
   background: var(--color-white);
   border: 1px solid var(--color-border);
   padding: var(--spacing-md);
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-radius: var(--radius-md);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  border-radius: var(--radius-sm);
 }
 .hub-card:hover, .service-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.12);
+  border-color: var(--color-border-strong);
 }
 .hub-card h3, .service-card h3 {
   margin-top: 0;
-  border: none;
-  padding: 0;
+  font-size: var(--body-1);
+  font-weight: var(--fw-clickable);
+  line-height: 1.3;
+}
+.hub-card p, .service-card p {
+  font-size: var(--body-2);
+  color: var(--color-text-light);
+  line-height: 1.5;
 }
 .hub-card .tag {
   display: inline-block;
-  background: var(--color-black);
-  color: var(--color-white);
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  padding: 3px 8px;
+  font-size: var(--body-3);
+  font-weight: var(--fw-clickable);
   text-transform: uppercase;
+  letter-spacing: 0.03em;
   margin-right: 4px;
+  margin-top: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
-/* Trust Badges - clean layout */
+/* ── Trust Badges — BMW-clean, structured ── */
 .trust-badges {
   background: var(--color-bg-alt);
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-md);
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
   margin: var(--spacing-lg) 0;
@@ -135,11 +287,11 @@
   gap: var(--spacing-lg);
 }
 .trust-badges .badge, .trust-badges .trust-badge {
-  font-weight: 700;
+  font-weight: var(--fw-clickable);
   color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 0.85rem;
+  font-size: var(--body-3);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -147,48 +299,63 @@
 }
 .trust-badges .badge::before {
   content: '✓';
-  color: var(--color-primary);
+  color: var(--color-bmw-blue);
   font-weight: 900;
 }
 .trust-badge .number {
   font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-weight: var(--fw-price);
+  color: var(--color-text);            /* BMW: dark text, not red */
   display: block;
+  line-height: 1;
 }
 .trust-badge .label {
-  font-size: 0.82rem;
+  font-size: var(--body-3);
   color: var(--color-text-muted);
+  font-weight: var(--fw-default);
 }
 
-/* Internal Links */
+/* ── Internal Links — BMW structured navigation ── */
 .internal-links {
-  border-top: 2px solid var(--color-black);
+  border-top: 1px solid var(--color-border);
   padding-top: var(--spacing-md);
   margin-top: var(--spacing-xl);
 }
-.internal-links h3 { margin-top: 0; border: none; padding: 0; }
+.internal-links h3 {
+  margin-top: 0;
+  font-weight: var(--fw-clickable);
+}
 .internal-links ul { list-style: none; margin: 0; padding: 0; }
 .internal-links li {
-  padding: 8px 0;
-  border-bottom: 1px dotted var(--color-border);
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
 }
-.internal-links a { text-decoration: none; font-weight: 500; }
+.internal-links a {
+  text-decoration: none;
+  font-weight: var(--fw-clickable);
+  color: var(--color-text);
+}
+.internal-links a:hover {
+  color: var(--color-bmw-blue);
+}
 .internal-links a::before {
   content: '→';
   margin-right: 8px;
-  color: var(--color-primary);
+  color: var(--color-bmw-blue);
 }
 
-/* FAQ */
+/* ── FAQ — BMW clean surface ── */
 .faq-section {
   margin-top: var(--spacing-xl);
   background: var(--color-bg-alt);
   padding: var(--spacing-lg);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
 }
-.faq-section h2 { border: none; padding: 0; margin-top: 0; }
+.faq-section h2 {
+  margin-top: 0;
+  font-weight: var(--fw-clickable);
+}
 .faq-item {
   margin-bottom: var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
@@ -199,4 +366,81 @@
   border-bottom: none;
   padding-bottom: 0;
 }
-.faq-item h3 { border: none; padding: 0; margin-top: 0; }
+.faq-item h3 {
+  margin-top: 0;
+  font-weight: var(--fw-clickable);
+}
+
+/* ── Section Headings (hub page clusters) ── */
+.section-heading {
+  font-size: var(--h3-size);
+  font-weight: var(--fw-clickable);
+  color: var(--color-text);
+  position: relative;
+  padding-left: 1rem;
+  margin: var(--spacing-xl) 0 var(--spacing-sm);
+}
+.section-heading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 3px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* ── Hub Page Description ── */
+.hub-intro {
+  text-align: center;
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+}
+.hub-intro h2 {
+  font-weight: var(--fw-clickable);
+  font-size: var(--h2-size);
+}
+.hub-intro p {
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto var(--spacing-md);
+}
+
+/* ── Hero CTAs — stacked on mobile, inline on desktop ── */
+.hero-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: var(--spacing-lg);
+}
+@media (min-width: 768px) {
+  .hero-ctas {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+/* ── Responsive text utilities ── */
+@media (max-width: 767px) {
+  .hub-card h3 a {
+    font-size: var(--body-2);
+  }
+  .cta-box {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  .cta-box a,
+  .hero-ctas .btn-whatsapp,
+  .hero-ctas .btn-call {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  .internal-links a {
+    display: block;
+    padding: 0.75rem 0;
+  }
+  .internal-links li {
+    padding: 0;
+  }
+}
