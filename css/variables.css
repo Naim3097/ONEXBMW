@@ -1,3 +1,26 @@
+/* ── Exo 2 — Self-hosted font faces ── */
+@font-face {
+  font-family: 'Exo 2';
+  src: url('../fonts/Exo2-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Exo 2';
+  src: url('../fonts/Exo2-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Exo 2';
+  src: url('../fonts/Exo2-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ── BMW M-Sport Tri-Color Palette ── */
   --color-m-red: #E30613;          /* BMW M Red — clean, vibrant */
