@@ -1,10 +1,10 @@
 body {
   font-family: var(--font-primary);
-  font-weight: var(--fw-default);      /* 300 — BMW light base */
+  font-weight: var(--fw-default);      /* 400 — Exo2-Regular base */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: var(--fw-default);      /* 300 — BMW uses light for headings */
+  font-weight: var(--fw-heading);      /* 700 — Exo2-Bold for headings */
   color: var(--color-text);            /* #262626 — NOT pure black */
   margin-top: var(--spacing-xl);
   margin-bottom: var(--spacing-sm);
@@ -56,5 +56,5 @@ li {
 }
 
 strong, b {
-  font-weight: var(--fw-clickable);    /* 500, not 700 — BMW restraint */
+  font-weight: var(--fw-heading);      /* 700 — Exo2-Bold */
 }
