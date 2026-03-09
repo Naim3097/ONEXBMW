@@ -154,12 +154,12 @@ article table {
   color: var(--color-bmw-blue);
 }
 
-/* One X Accent Button (WhatsApp green, Call red) */
+/* BMW-styled CTA Buttons */
 .btn-whatsapp {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #25d366;
+  background-color: var(--color-bmw-blue);
   color: var(--color-white);
   padding: 0.75rem 1.5rem;
   border: 0;
@@ -172,7 +172,7 @@ article table {
   transition: background-color var(--transition-fast);
 }
 .btn-whatsapp:hover {
-  background-color: #1da851;
+  background-color: var(--color-bmw-blue-hover);
   color: var(--color-white);
 }
 
@@ -180,7 +180,7 @@ article table {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-primary);
+  background-color: var(--color-text);
   color: var(--color-white);
   padding: 0.75rem 1.5rem;
   border: 0;
@@ -193,7 +193,7 @@ article table {
   transition: background-color var(--transition-fast);
 }
 .btn-call:hover {
-  background-color: #8a1a1a;
+  background-color: var(--color-text-light);
   color: var(--color-white);
 }
 

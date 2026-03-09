@@ -303,16 +303,16 @@ article {
   gap: 0.75rem;
 }
 .landing-hero .cta-box a:not(.call) {
-  background-color: #25d366;      /* WhatsApp green */
+  background-color: var(--color-bmw-blue);
 }
 .landing-hero .cta-box a:not(.call):hover {
-  background-color: #1da851;
+  background-color: var(--color-bmw-blue-hover);
 }
 .landing-hero .cta-box a.call {
-  background-color: var(--color-primary);  /* One X Red */
+  background-color: var(--color-text);
 }
 .landing-hero .cta-box a.call:hover {
-  background-color: #8a1a1a;
+  background-color: var(--color-text-light);
 }
 
 @media (min-width: 768px) {
