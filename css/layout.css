@@ -378,3 +378,301 @@ article {
   z-index: 9999;
   transition: width 0.1s linear;
 }
+
+/* ══════════════════════════════════════════
+   Landing Page Section System
+   BMW premium aesthetic — structured rhythm
+   ══════════════════════════════════════════ */
+
+/* ── Hero background image support ── */
+.landing-hero .hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.landing-hero .hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Landing content sections ── */
+.lp-section {
+  padding: var(--spacing-2xl) 0;
+}
+.lp-section .container {
+  max-width: var(--container-wide);
+}
+
+/* Alternating section backgrounds */
+.lp-section--alt {
+  background: var(--color-bg-alt);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Dark cinematic section */
+.lp-section--dark {
+  background: var(--color-black);
+  color: var(--color-white);
+  border-top: none;
+  border-bottom: none;
+}
+.lp-section--dark h2,
+.lp-section--dark h3 {
+  color: var(--color-white);
+}
+.lp-section--dark p,
+.lp-section--dark li {
+  color: rgba(255,255,255,0.75);
+}
+.lp-section--dark strong {
+  color: var(--color-white);
+}
+
+/* Section header — centered, BMW editorial */
+.lp-section__header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+.lp-section__header h2 {
+  font-weight: var(--fw-default);
+  letter-spacing: -0.01em;
+  margin-top: 0;
+}
+.lp-section__header p {
+  color: var(--color-text-muted);
+  max-width: 640px;
+  margin: var(--spacing-xs) auto 0;
+  font-size: var(--body-1);
+  line-height: 1.6;
+}
+.lp-section--dark .lp-section__header p {
+  color: rgba(255,255,255,0.6);
+}
+
+/* Accent bar under section header */
+.lp-section__header::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin: var(--spacing-md) auto 0;
+  background: var(--color-primary);
+}
+.lp-section--dark .lp-section__header::after {
+  background: var(--color-m-lblue);
+}
+
+/* ── Feature grid — icon-less BMW KPI cards ── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+.feature-card {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+}
+.feature-card h3 {
+  margin-top: 0;
+  font-size: var(--body-1);
+  font-weight: var(--fw-clickable);
+  margin-bottom: var(--spacing-xs);
+}
+.feature-card p {
+  font-size: var(--body-2);
+  color: var(--color-text-light);
+  line-height: 1.55;
+  margin-bottom: 0;
+}
+.feature-card p:last-child {
+  margin-bottom: 0;
+}
+/* Dark section cards */
+.lp-section--dark .feature-card {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+}
+.lp-section--dark .feature-card h3 {
+  color: var(--color-white);
+}
+.lp-section--dark .feature-card p {
+  color: rgba(255,255,255,0.65);
+}
+
+/* ── Process steps — numbered BMW editorial ── */
+.process-steps {
+  counter-reset: step;
+  max-width: 700px;
+}
+.process-step {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.process-step:last-child {
+  border-bottom: none;
+}
+.process-step::before {
+  counter-increment: step;
+  content: counter(step);
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--body-1);
+  font-weight: var(--fw-price);
+  color: var(--color-white);
+  background: var(--color-bmw-blue);
+  border-radius: 50%;
+}
+.process-step h3 {
+  margin: 0 0 0.25rem;
+  font-size: var(--body-1);
+  font-weight: var(--fw-clickable);
+}
+.process-step p {
+  margin: 0;
+  font-size: var(--body-2);
+  color: var(--color-text-light);
+  line-height: 1.55;
+}
+.lp-section--dark .process-step {
+  border-color: rgba(255,255,255,0.1);
+}
+.lp-section--dark .process-step::before {
+  background: var(--color-m-lblue);
+  color: var(--color-black);
+}
+
+/* ── Spec table inside landing sections ── */
+.lp-section .threshold-table {
+  margin: 0;
+}
+.lp-section--dark .threshold-table th {
+  background: rgba(255,255,255,0.1);
+}
+.lp-section--dark .threshold-table td {
+  border-color: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+}
+.lp-section--dark .threshold-table tr:nth-child(even) {
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── Full-width CTA band ── */
+.lp-cta-band {
+  background: var(--color-bmw-blue);
+  color: var(--color-white);
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+}
+.lp-cta-band .container {
+  max-width: var(--container-wide);
+}
+.lp-cta-band h2 {
+  color: var(--color-white);
+  font-weight: var(--fw-clickable);
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--h3-size);
+}
+.lp-cta-band p {
+  color: rgba(255,255,255,0.85);
+  margin: 0 auto var(--spacing-md);
+  max-width: 520px;
+}
+.lp-cta-band .cta-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+}
+.lp-cta-band .cta-buttons a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-clickable);
+  font-size: var(--body-2);
+  min-height: 3.25rem;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+.lp-cta-band .cta-buttons a.btn-white {
+  background: var(--color-white);
+  color: var(--color-bmw-blue);
+}
+.lp-cta-band .cta-buttons a.btn-white:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-bmw-blue);
+}
+.lp-cta-band .cta-buttons a.btn-outline-white {
+  background: transparent;
+  color: var(--color-white);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+}
+.lp-cta-band .cta-buttons a.btn-outline-white:hover {
+  box-shadow: inset 0 0 0 2px var(--color-white);
+  color: var(--color-white);
+}
+
+/* ── Location section with M-stripe accent ── */
+.lp-location-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lp-location-list li {
+  padding: 0.75rem 0;
+  padding-left: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  font-size: var(--body-1);
+}
+.lp-location-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 3px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+.lp-location-list li:nth-child(2)::before { background: var(--color-m-dblue); }
+.lp-location-list li:nth-child(3)::before { background: var(--color-m-lblue); }
+.lp-location-list li:nth-child(4)::before { background: var(--color-primary); }
+.lp-location-list li:nth-child(5)::before { background: var(--color-m-dblue); }
+.lp-location-list li:nth-child(6)::before { background: var(--color-m-lblue); }
+
+/* ── Responsive landing sections ── */
+@media (min-width: 768px) {
+  .lp-section {
+    padding: calc(var(--spacing-2xl) * 1.25) 0;
+  }
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lp-cta-band .cta-buttons {
+    flex-direction: row;
+  }
+}
+@media (min-width: 1024px) {
+  .feature-grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .lp-section {
+    padding: calc(var(--spacing-2xl) * 1.5) 0;
+  }
+}
