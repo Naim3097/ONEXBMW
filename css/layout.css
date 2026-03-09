@@ -35,15 +35,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
+  height: 56px;
   max-width: var(--container-wide);
 }
 
-/* Brand logos — One X + BMW badge side by side */
+/* Brand logos — One X | BMW side by side */
 .brand-logos {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   flex-shrink: 0;
 }
 .site-header .brand-logo {
@@ -52,9 +52,14 @@
   flex-shrink: 0;
 }
 .site-header .brand-logo img {
-  height: 28px;
+  height: 22px;
   width: auto;
   display: block;
+}
+.logo-divider {
+  width: 1px;
+  height: 20px;
+  background: #444;
 }
 .bmw-logo {
   display: flex;
@@ -62,7 +67,7 @@
   flex-shrink: 0;
 }
 .bmw-logo img {
-  height: 30px;
+  height: 24px;
   width: auto;
   display: block;
 }
@@ -70,20 +75,36 @@
 /* Desktop nav — inline links */
 nav {
   display: none;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   align-items: center;
 }
 nav a {
-  color: var(--color-text-muted);
-  font-size: var(--body-2);
+  color: #999;
+  font-size: 0.8125rem;
   font-weight: var(--fw-clickable);
   text-decoration: none;
-  padding: 0.75rem 0.5rem;
-  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.75rem 0;
+  position: relative;
   transition: color var(--transition-fast);
 }
 nav a:hover {
   color: var(--color-white);
+}
+nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-white);
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+}
+nav a:hover::after {
+  transform: scaleX(1);
 }
 
 /* Hamburger toggle — mobile only */
@@ -102,21 +123,21 @@ nav a:hover {
 }
 .nav-toggle span {
   display: block;
-  width: 24px;
-  height: 2px;
+  width: 22px;
+  height: 1.5px;
   background: var(--color-white);
-  border-radius: 2px;
+  border-radius: 1px;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 /* Hamburger → X animation */
 .nav-toggle.active span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
+  transform: translateY(6.5px) rotate(45deg);
 }
 .nav-toggle.active span:nth-child(2) {
   opacity: 0;
 }
 .nav-toggle.active span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+  transform: translateY(-6.5px) rotate(-45deg);
 }
 
 /* Mobile nav overlay */
@@ -125,32 +146,40 @@ nav.open {
   flex-direction: column;
   position: fixed;
   inset: 0;
-  background: var(--color-black);
+  background: rgba(0,0,0,0.97);
   z-index: 105;
   justify-content: center;
   align-items: center;
   gap: 0;
+  padding-bottom: 4rem;
 }
 nav.open a {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: var(--fw-default);
-  padding: 1rem 2rem;
-  color: var(--color-white);
-  letter-spacing: 0.02em;
+  padding: 1.25rem 2rem;
+  color: #999;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 nav.open a:hover {
-  color: var(--color-primary);
+  color: var(--color-white);
+}
+nav.open a::after {
+  display: none;
 }
 
 @media (min-width: 768px) {
   .site-header .container {
-    height: 84px;
+    height: 72px;
   }
   .site-header .brand-logo img {
-    height: 40px;
+    height: 30px;
+  }
+  .logo-divider {
+    height: 26px;
   }
   .bmw-logo img {
-    height: 36px;
+    height: 32px;
   }
   nav {
     display: flex;
