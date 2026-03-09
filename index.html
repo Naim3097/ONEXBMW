@@ -44,17 +44,29 @@
 <body>
 <header class="site-header">
 <div class="container">
+<div class="brand-logos">
 <a href="/" class="brand-logo"><img src="./asset/logo-white.png" alt="One X Transmission"></a>
-<nav>
+<span class="bmw-badge">BMW Specialist</span>
+</div>
+<nav id="mainNav">
 <a href="/">Home</a>
 <a href="/blog/">Blog</a>
 <a href="/services/">Services</a>
 </nav>
+<button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+<span></span><span></span><span></span>
+</button>
 </div>
 </header>
 
 <main>
 <section class="landing-hero">
+<div class="hero-video">
+<video autoplay muted loop playsinline poster="./asset/hero-poster.jpg" preload="metadata">
+<source src="./asset/hero-bg.webm" type="video/webm">
+<source src="./asset/hero-bg.mp4" type="video/mp4">
+</video>
+</div>
 <div class="container">
 <h1>Klang Valley's Most Trusted BMW Gearbox Specialist</h1>
 <p>Expert BMW diagnostics, gearbox repair & transmission service. Serving Klang, Shah Alam & Banting with workshop-grade precision.</p>
@@ -283,6 +295,24 @@
 </footer>
 <script>
 (function(){
+  var btn = document.getElementById('navToggle');
+  var nav = document.getElementById('mainNav');
+  if (btn && nav) {
+    btn.addEventListener('click', function(){
+      var open = nav.classList.toggle('open');
+      btn.classList.toggle('active');
+      btn.setAttribute('aria-expanded', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    });
+    nav.addEventListener('click', function(e){
+      if (e.target.tagName === 'A') {
+        nav.classList.remove('open');
+        btn.classList.remove('active');
+        btn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }
+    });
+  }
   var input = document.getElementById('hubSearch');
   if (!input) return;
   var cards = document.querySelectorAll('.hub-card');

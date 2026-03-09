@@ -1,3 +1,6 @@
 # BMW proprietary CSS (reference only, not for distribution)
 bmw-css-raw.txt
 bmw-components.txt
+
+# Source video (too large for git)
+*.mov
