@@ -25,11 +25,11 @@
 }
 .accent-line .line-dblue {
   width: 60px;
-  background: #003d79;
+  background: var(--color-m-dblue);
 }
 .accent-line .line-lblue {
   width: 60px;
-  background: #4fc3f7;
+  background: var(--color-m-lblue);
 }
 .site-header .container {
   display: flex;

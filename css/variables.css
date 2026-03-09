@@ -1,6 +1,11 @@
 :root {
+  /* ── BMW M-Sport Tri-Color Palette ── */
+  --color-m-red: #E30613;          /* BMW M Red — clean, vibrant */
+  --color-m-dblue: #003D79;        /* BMW M Dark Blue — authoritative */
+  --color-m-lblue: #69B3E7;        /* BMW M Light Blue — informational */
+
   /* ── Brand Colors ── */
-  --color-primary: #AB2020;        /* One X Red (brand identity) */
+  --color-primary: #E30613;        /* BMW M Red — accent & emphasis */
   --color-black: #000000;
   --color-white: #FFFFFF;
 
@@ -14,11 +19,11 @@
   --color-border: #e6e6e6;         /* BMW separator grey */
   --color-border-strong: #bbb;     /* BMW medium grey border */
   --color-link: #262626;           /* BMW: links match text, underlined */
-  --color-link-hover: #1c69d4;     /* BMW Blue on hover */
+  --color-link-hover: #003D79;     /* BMW M Dark Blue on hover */
 
-  /* BMW Interactive Blue (verified from production CSS) */
-  --color-bmw-blue: #1c69d4;
-  --color-bmw-blue-hover: #0653b6;
+  /* BMW M Dark Blue — primary interactive */
+  --color-bmw-blue: #003D79;
+  --color-bmw-blue-hover: #002B59;
   --color-bmw-blue-disabled: #bbd2f3;
 
   /* ── Typography (BMW-aligned scale) ── */
