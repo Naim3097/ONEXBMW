@@ -238,6 +238,19 @@ footer p {
   }
 }
 
+/* Footer brand logo */
+.footer-logo {
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+.footer-logo img {
+  height: 28px;
+  width: auto;
+  display: block;
+  opacity: 0.9;
+}
+.footer-logo:hover img { opacity: 1; }
+
 /* ── Breadcrumb — BMW-clean ── */
 .breadcrumb {
   font-size: var(--body-3);
