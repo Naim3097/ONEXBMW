@@ -21,15 +21,15 @@
 }
 .accent-line .line-red {
   flex: 1;
-  background: var(--color-primary);
+  background: #74abea;             /* dominant — One X light blue */
 }
 .accent-line .line-dblue {
-  width: 60px;
-  background: var(--color-m-dblue);
+  width: 40px;
+  background: #283c75;             /* small accent — dark blue */
 }
 .accent-line .line-lblue {
-  width: 60px;
-  background: var(--color-m-lblue);
+  width: 40px;
+  background: #d52817;             /* small accent — red, far right */
 }
 .site-header .container {
   display: flex;

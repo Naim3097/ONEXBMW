@@ -23,12 +23,12 @@
 
 :root {
   /* ── BMW M-Sport Tri-Color Palette ── */
-  --color-m-red: #E30613;          /* BMW M Red — clean, vibrant */
-  --color-m-dblue: #003D79;        /* BMW M Dark Blue — authoritative */
-  --color-m-lblue: #69B3E7;        /* BMW M Light Blue — informational */
+  --color-m-red: #d52817;          /* One X M Red */
+  --color-m-dblue: #283c75;        /* One X M Dark Blue */
+  --color-m-lblue: #74abea;        /* One X M Light Blue */
 
   /* ── Brand Colors ── */
-  --color-primary: #E30613;        /* BMW M Red — accent & emphasis */
+  --color-primary: #d52817;        /* One X Red — accent & emphasis */
   --color-black: #000000;
   --color-white: #FFFFFF;
 
