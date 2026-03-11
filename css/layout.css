@@ -690,3 +690,86 @@ article {
     padding: calc(var(--spacing-2xl) * 1.5) 0;
   }
 }
+
+/* ── Workshop Gallery — 6 vertical assets, BMW-standard 3-col grid ── */
+.lp-gallery {
+  padding: var(--spacing-xl) 0;
+  background: var(--color-black);
+}
+/* Section header on black background */
+.lp-gallery .lp-section__header h2 {
+  color: var(--color-white);
+}
+.lp-gallery .lp-section__header p {
+  color: rgba(255,255,255,0.65);
+}
+.lp-gallery .lp-section__header::after {
+  background: var(--color-primary);
+}
+.lp-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.lp-gallery__item {
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: var(--color-black);
+}
+/* BMW M dark blue tint overlay — ties images to brand palette via multiply blend */
+.lp-gallery__item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 42, 82, 0.28);
+  mix-blend-mode: multiply;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity var(--transition-slow);
+}
+.lp-gallery__item:hover::before {
+  opacity: 0.6;
+}
+.lp-gallery__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Darken + desaturate to match BMW editorial colour temperature */
+  filter: brightness(0.80) saturate(0.70) contrast(1.08);
+  transition: transform var(--transition-slow), filter var(--transition-slow);
+}
+.lp-gallery__item:hover img {
+  transform: scale(1.04);
+  filter: brightness(0.90) saturate(0.82) contrast(1.05);
+}
+.lp-gallery__item figcaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2.5rem 0.875rem 0.75rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%);
+  color: var(--color-white);
+  font-size: var(--body-3);
+  font-weight: var(--fw-clickable);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+@media (min-width: 640px) {
+  .lp-gallery__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+}
+@media (min-width: 1024px) {
+  .lp-gallery {
+    padding: var(--spacing-2xl) 0;
+  }
+  .lp-gallery__grid {
+    gap: 16px;
+  }
+}
