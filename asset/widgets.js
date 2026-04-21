@@ -7,13 +7,16 @@
 
   var BAR_KEY     = 'ox_ann_dismissed';
   var PRIVACY_KEY = 'ox_privacy_v1';
+  var PROMO_KEY   = 'ox_bmw_promo_dismissed_v1';
+  var PROMO_URL   = 'https://www.onextransmission.com/ms/packages';
+  var PROMO_IMG   = 'https://www.onextransmission.com/images/asset%20promotion/PROMO%201%20B.jpg';
 
   /* ── Rotating announcement messages ── */
   var ANN = [
     {
-      text : 'BMW N47 Diesel Timing Chain Advisory — fleet owners, check your eligibility.',
-      link : 'https://www.bmw.com',
-      label: 'bmw.com \u2197'
+      text : 'Workshop ATF Service Promo — RM439 full gearbox service with free OBD2 monitoring device. Limited slots.',
+      link : PROMO_URL,
+      label: 'View Package \u2197'
     },
     {
       text : 'ZF 8HP ATF Service Interval updated to 60,000 km per official ZF Technical Bulletin.',
@@ -26,9 +29,9 @@
       label: 'Book via WhatsApp \u2197'
     },
     {
-      text : 'BMW N63 B44 Oil Consumption Extended Campaign — verify your vehicle status.',
-      link : 'https://www.bmw.com',
-      label: 'bmw.com \u2197'
+      text : 'Get the BYKI-compatible OBD2 device free with our ATF service — monitor your BMW live from your phone.',
+      link : PROMO_URL,
+      label: 'See Details \u2197'
     }
   ];
 
@@ -133,5 +136,91 @@
   function init() {
     buildAnnounceBar();
     buildPrivacyPopup();
+    schedulePromoModal();
+  }
+
+  /* ─────────────────────────────────────────────
+     PROMO MODAL (money-page funnel → /ms/packages)
+     - 3s delay after load
+     - 3-day cooldown via localStorage
+     - CTA opens money page in new tab
+     - Fires fbq + GTM events if available
+     - Responsive: centered card desktop, bottom sheet ≤480px
+  ───────────────────────────────────────────── */
+  function schedulePromoModal() {
+    if (localStorage.getItem(PROMO_KEY)) {
+      var ts = parseInt(localStorage.getItem(PROMO_KEY), 10);
+      if (!isNaN(ts) && (Date.now() - ts) < 3 * 24 * 60 * 60 * 1000) return;
+    }
+    setTimeout(buildPromoModal, 3000);
+  }
+
+  function buildPromoModal() {
+    if (document.getElementById('onexPromoBackdrop')) return;
+
+    var bd = document.createElement('div');
+    bd.className = 'onex-modal-backdrop';
+    bd.id = 'onexPromoBackdrop';
+    bd.setAttribute('role', 'dialog');
+    bd.setAttribute('aria-modal', 'true');
+    bd.setAttribute('aria-labelledby', 'onexPromoHeadline');
+
+    bd.innerHTML =
+      '<div class="onex-modal" role="document">' +
+        '<button class="onex-modal-close" id="onexPromoClose" aria-label="Close">\u00D7</button>' +
+        '<div class="onex-modal-media">' +
+          '<img src="' + PROMO_IMG + '" alt="ATF Gearbox Service Package RM439 with free OBD2 device" loading="lazy" decoding="async">' +
+          '<span class="onex-modal-badge">WORKSHOP PROMO</span>' +
+        '</div>' +
+        '<div class="onex-modal-body">' +
+          '<p class="onex-modal-eyebrow">ATF + Filter + Free OBD2</p>' +
+          '<h2 class="onex-modal-headline" id="onexPromoHeadline">Complete Gearbox Service <span>RM439</span></h2>' +
+          '<p class="onex-modal-sub">Full ATF drain &amp; fill + new gearbox filter + <strong>FREE OBD2 device</strong> (worth RM150+) compatible with the BYKI app. Track your BMW live data, DTCs and health score from your phone.</p>' +
+          '<ul class="onex-modal-list">' +
+            '<li>ATF fluid change (spec-matched to your vehicle)</li>' +
+            '<li>New gearbox filter — metal debris captured</li>' +
+            '<li>Free BYKI-compatible OBD2 device (live data, DTC codes, 0–100 health score)</li>' +
+          '</ul>' +
+          '<div class="onex-modal-price"><span class="onex-price-old">RM 580</span><span class="onex-price-new">RM 439</span><span class="onex-price-save">Save RM 141</span></div>' +
+          '<a href="' + PROMO_URL + '" class="onex-modal-cta" id="onexPromoCta" target="_blank" rel="noopener">Claim This Offer</a>' +
+          '<p class="onex-modal-fine">Limited to 100 slots. RM 50 deposit to book.</p>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(bd);
+    requestAnimationFrame(function () { bd.classList.add('visible'); });
+    document.documentElement.style.overflow = 'hidden';
+
+    function closeModal(reason) {
+      bd.classList.remove('visible');
+      document.documentElement.style.overflow = '';
+      localStorage.setItem(PROMO_KEY, String(Date.now()));
+      setTimeout(function () {
+        if (bd.parentNode) bd.parentNode.removeChild(bd);
+      }, 320);
+      try {
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({ event: 'promo_modal_close', reason: reason || 'x' });
+        }
+      } catch (e) {}
+    }
+
+    document.getElementById('onexPromoClose').addEventListener('click', function () { closeModal('close_button'); });
+    bd.addEventListener('click', function (e) { if (e.target === bd) closeModal('backdrop'); });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape' && document.body.contains(bd)) { closeModal('esc'); document.removeEventListener('keydown', esc); }
+    });
+
+    document.getElementById('onexPromoCta').addEventListener('click', function () {
+      try {
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'InitiateCheckout', { content_name: 'Pakej Servis Gearbox RM439', value: 439, currency: 'MYR' });
+        }
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({ event: 'promo_modal_cta_click', money_url: PROMO_URL, value: 439, currency: 'MYR' });
+        }
+      } catch (e) {}
+      localStorage.setItem(PROMO_KEY, String(Date.now()));
+    });
   }
 }());
